@@ -28,6 +28,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     val_encoder_outputs = []
     iteration = 0
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+        iteration += 1
         samples = samples.to(device)
         samples_val, targets_val = next(data_loader_val_iter)  # TODO pass only the iter
         samples_val = samples_val.to(device)
@@ -43,7 +44,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             encoder_outputs = []
             val_encoder_outputs = []
         else:
-            loss_dict = criterion(outputs, targets)
+            loss_dict = criterion(outputs, targets, None, None)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
