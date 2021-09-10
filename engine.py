@@ -41,12 +41,21 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             val_encoder_outputs.append(encoder_out_val)
         if iteration % 10 == 0:
             loss_dict = criterion(outputs, targets, torch.cat(encoder_outputs), torch.cat(val_encoder_outputs))
+            weight_dict = criterion.weight_dict
+            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+            losses.backward()
+            if max_norm > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+            optimizer.step()
+            optimizer.zero_grad()
+
             encoder_outputs = []
             val_encoder_outputs = []
         else:
             loss_dict = criterion(outputs, targets, None, None)
-        weight_dict = criterion.weight_dict
-        losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+            weight_dict = criterion.weight_dict
+            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+            losses.backward()
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -62,12 +71,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             print("Loss is {}, stopping training".format(loss_value))
             print(loss_dict_reduced)
             sys.exit(1)
-
-        optimizer.zero_grad()
-        losses.backward()
-        if max_norm > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
-        optimizer.step()
 
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
