@@ -43,9 +43,14 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         if (iteration + 1) % accum_iter == 0:
             loss_dict = criterion(outputs, targets, torch.cat(encoder_outputs), torch.cat(val_encoder_outputs))
             weight_dict = criterion.weight_dict
-            losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-            total_losses.append(losses)
-            losses = sum(total_losses) / accum_iter
+            detr_losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict and k != "loss_kl")
+            total_losses.append(detr_losses)
+            detr_losses = sum(total_losses) / accum_iter
+
+            kl_losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict and k == "loss_kl")
+
+            losses = sum([detr_losses, kl_losses])
+
             losses.backward()
             if max_norm > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)

@@ -16,6 +16,7 @@ from .matcher import build_matcher
 from .segmentation import (DETRsegm, PostProcessPanoptic, PostProcessSegm,
                            dice_loss, sigmoid_focal_loss)
 from .transformer import build_transformer
+from .kl_matcher import build_kl_matcher
 
 
 class DETR(nn.Module):
@@ -86,7 +87,7 @@ class SetCriterion(nn.Module):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
     """
-    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses):
+    def __init__(self, num_classes, kl_matcher, matcher, weight_dict, eos_coef, losses):
         """ Create the criterion.
         Parameters:
             num_classes: number of object categories, omitting the special no-object category
@@ -98,6 +99,7 @@ class SetCriterion(nn.Module):
         super().__init__()
         self.num_classes = num_classes
         self.matcher = matcher
+        self.kl_matcher = kl_matcher
         self.weight_dict = weight_dict
         self.eos_coef = eos_coef
         self.losses = losses
@@ -166,8 +168,8 @@ class SetCriterion(nn.Module):
         # https://stackoverflow.com/questions/56816241/difference-between-detach-and-with-torch-nograd-in-pytorch
         # https://sidml.github.io/Understanding-KL-Divergence/
         # https://discuss.pytorch.org/t/kullback-leibler-divergence-loss-function-giving-negative-values/763
-        return {"loss_kl": F.mse_loss(train_dis, val_dis)}
-        # return {"loss_kl": F.kl_div(F.log_softmax(train_dis), F.softmax(val_dis), reduction="batchmean")}
+        # return {"loss_kl": F.mse_loss(train_dis, val_dis)}
+        return {"loss_kl": F.kl_div(F.log_softmax(train_dis), F.softmax(val_dis), reduction="batchmean")}
 
     def loss_masks(self, outputs, targets, indices, num_boxes, train_dis=None, val_dis=None):
         """Compute the losses related to the masks: the focal loss and the dice loss.
@@ -239,6 +241,9 @@ class SetCriterion(nn.Module):
         if is_dist_avail_and_initialized():
             torch.distributed.all_reduce(num_boxes)
         num_boxes = torch.clamp(num_boxes / get_world_size(), min=1).item()
+
+        if train_dis is not None and val_dis is not None:
+            train_dis, val_dis = self.kl_matcher(train_dis, val_dis)
 
         # Compute all the requested losses
         losses = {}
@@ -348,6 +353,7 @@ def build(args):
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
     matcher = build_matcher(args)
+    kl_matcher = build_kl_matcher()
     weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
     weight_dict['loss_giou'] = args.giou_loss_coef
     if args.masks:
@@ -367,7 +373,7 @@ def build(args):
         losses += ["masks"]
     if args.kl_div:
         losses += ["kl"]
-    criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
+    criterion = SetCriterion(num_classes, kl_matcher=kl_matcher, matcher=matcher, weight_dict=weight_dict,
                              eos_coef=args.eos_coef, losses=losses)
     criterion.to(device)
     postprocessors = {'bbox': PostProcess()}
