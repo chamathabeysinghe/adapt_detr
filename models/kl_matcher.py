@@ -22,7 +22,7 @@ class HungarianKLMatcher(nn.Module):
         val_dis_cp = val_dis_cp.reshape(N, N, c, w, h)
         val_dis_cp = val_dis_cp.transpose(0, 1)
         val_dis_cp = val_dis_cp.reshape(N * N, c, w, h)
-        cost = (train_dis_cp - val_dis_cp).abs().sum(dim=[1, 2, 3]).reshape(N, N)
+        cost = (train_dis_cp - val_dis_cp).abs().sum(dim=[1, 2, 3]).reshape(N, N).cpu()
         row_ind, col_ind = linear_sum_assignment(cost)
         list(zip(row_ind, col_ind))
         return train_dis, val_dis[col_ind]
