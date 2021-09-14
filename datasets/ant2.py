@@ -62,7 +62,7 @@ class AntDetection(torchvision.datasets.CocoDetection):
                     img, target = self._train_transforms_torch(img, target)
             return img, target
 
-        elif self.image_set == 'val' or self.image_set == 'test':
+        elif self.image_set == 'val' or self.image_set == 'test' or self.image_set == 'test_minified':
             img, target = super(AntDetection, self).__getitem__(idx)
             image_id = self.ids[idx]
             target = {'image_id': image_id, 'annotations': target}
