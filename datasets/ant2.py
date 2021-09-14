@@ -234,6 +234,7 @@ def build(image_set, args):
         "train": (root / "train", root / 'ground-truth-train.json'),
         "val": (root / "val", root / 'ground-truth-val.json'),
         "test": (root / "test", root / 'ground-truth-test.json'),
+        "test_minified": (root / "test_minified", root / 'ground-truth-test_minified.json'),
     }
 
     img_folder, ann_file = PATHS[image_set]
