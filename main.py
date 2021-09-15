@@ -14,7 +14,7 @@ import datasets
 import util.misc as utils
 from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch
-from models import build_model
+from models import build_model, build_discriminator
 
 
 def get_args_parser():
@@ -126,7 +126,9 @@ def main(args):
     random.seed(seed)
 
     model, criterion, postprocessors = build_model(args)
+    discriminator_model, discriminator_criterion = build_discriminator(args)
     model.to(device)
+    discriminator_model.to(device)
 
     # for n,p in model.named_parameters():
     #     if "backbone" in n:
@@ -135,9 +137,14 @@ def main(args):
         #     p.requires_grad_(False)
 
     model_without_ddp = model
+    discriminator_model_without_ddp = discriminator_model
+
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
+        discriminator_model = torch.nn.parallel.DistributedDataParallel(discriminator_model, device_ids=[args.gpu])
+        discriminator_model_without_ddp = discriminator_model.module
+
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
 
@@ -148,9 +155,14 @@ def main(args):
             "lr": args.lr_backbone,
         },
     ]
+    discriminator_param_dicts = [
+        {"params": [p for n, p in discriminator_model_without_ddp.named_parameters() if p.requires_grad]}
+    ]
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
+    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=args.lr, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+    discriminator_lr_scheduler = torch.optim.lr_scheduler.StepLR(discriminator_optimizer, args.lr_drop)
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_test = build_dataset(image_set='test_minified', args=args)
@@ -186,6 +198,7 @@ def main(args):
     if args.frozen_weights is not None:
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
         model_without_ddp.detr.load_state_dict(checkpoint['model'])
+        discriminator_model_without_ddp.detr.load_state_dict(checkpoint['discriminator_model'])
 
     output_dir = Path(args.output_dir)
     if args.resume:
@@ -198,10 +211,14 @@ def main(args):
         # del checkpoint['model']['class_embed.bias']
         # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
+        discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             args.start_epoch = checkpoint['epoch'] + 1
+        if not args.eval and 'discriminator_optimizer' in checkpoint:
+            discriminator_optimizer.load_state_dict(checkpoint['discriminator_optimizer'])
+            discriminator_lr_scheduler.load_state_dict(checkpoint['discriminator_lr_scheduler'])
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
@@ -216,7 +233,7 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train, data_loader_test_iter, optimizer, device, epoch,
+            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter, optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
@@ -227,8 +244,11 @@ def main(args):
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
                     'model': model_without_ddp.state_dict(),
+                    'discriminator_model': discriminator_model_without_ddp.state_dict(),
                     'optimizer': optimizer.state_dict(),
+                    'discriminator_optimizer': discriminator_optimizer.state_dict(),
                     'lr_scheduler': lr_scheduler.state_dict(),
+                    'discriminator_lr_scheduler': discriminator_lr_scheduler.state_dict(),
                     'epoch': epoch,
                     'args': args,
                 }, checkpoint_path)
