@@ -8,7 +8,7 @@ class Discriminator(nn.Module):
             nn.Conv2d(in_channels, 512, 5, padding=2),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(512, 128, 5, padding=2),
-            nn.BatchNorm2d(512),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(128, 8, 5, padding=2),
             nn.BatchNorm2d(8),

@@ -1,6 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from .detr import build
-import discriminator
+from .discriminator import build_discriminator as build_ds
 
 
 def build_model(args):
@@ -8,4 +8,4 @@ def build_model(args):
 
 
 def build_discriminator(args):
-    return discriminator.build_discriminator(args)
+    return build_ds(args)

@@ -16,7 +16,8 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     discriminator_model: torch.nn.Module, discriminator_criterion: torch.nn.Module,
-                    data_loader: Iterable, data_loader_val_iter, optimizer: torch.optim.Optimizer,
+                    data_loader: Iterable, data_loader_val_iter,
+                    optimizer: torch.optim.Optimizer, discriminator_optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, max_norm: float = 0):
     model.train()
     discriminator_model.train()
@@ -33,11 +34,32 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         samples_val, targets_val = next(data_loader_val_iter)  # TODO Create new data generator
         samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        N = 2   # TODO Read batch size from args
+        true_labels = torch.ones(N).to(device)
+        fake_labels = torch.zeros(N).to(device)
 
-        outputs = model(samples)
+
+        # Train discriminator
+        outputs, _, source_features = model(samples)
+        source_features = source_features[-1].tensors
+        _, _, target_features = model(samples_val)
+        target_features = target_features[-1].tensors
+        discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
+        discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
+        discriminator_loss = (discriminator_criterion(discriminator_output_source, true_labels) +
+                              discriminator_criterion(discriminator_output_target, fake_labels)) / 2
+        discriminator_optimizer.zero_grad()
+        discriminator_loss.backward()
+        discriminator_optimizer.step()
+
+        # Train Generator + Transformer
+        discriminator_output_target_new = discriminator_model(target_features).view(-1)
+        generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
+
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+        total_loss = losses + generator_loss
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -55,7 +77,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             sys.exit(1)
 
         optimizer.zero_grad()
-        losses.backward()
+        total_loss.backward()
         if max_norm > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()

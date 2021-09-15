@@ -209,7 +209,8 @@ def main(args):
         del checkpoint['model']['class_embed.bias']
         # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)
+        if not args.eval and 'discriminator_model' in checkpoint:
+            discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
@@ -231,7 +232,8 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter, optimizer, device, epoch,
+            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
+            optimizer, discriminator_optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
