@@ -107,7 +107,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
+def evaluate(model, criterion, discriminator_model, discriminator_criterion, postprocessors, data_loader, base_ds, device, output_dir, batch_size):
     model.eval()
     criterion.eval()
 
@@ -130,10 +130,24 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        N = batch_size
+        true_labels = torch.ones(N).to(device)
 
-        outputs, _, _ = model(samples)
+        outputs, _, target_features = model(samples)
+        target_features = target_features[-1].tensors
+        discriminator_output_target_new = discriminator_model(target_features).view(-1)
+        generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
+
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
+
+        # for logging purpose
+        gan_loss_dict = {'loss_generator': generator_loss}
+        gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
+        gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
+                                          for k, v in gan_loss_dict_reduced.items()}
+        gan_loss_dict_reduced_scaled = {k: v * weight_dict[k]
+                                        for k, v in gan_loss_dict_reduced.items() if k in weight_dict}
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -141,9 +155,15 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
-        metric_logger.update(loss=sum(loss_dict_reduced_scaled.values()),
+        losses = sum(loss_dict_reduced_scaled.values())
+        total_loss_value = losses + gan_loss_dict_reduced_scaled['loss_generator']
+
+        metric_logger.update(loss=losses,
+                             total_loss=total_loss_value,
                              **loss_dict_reduced_scaled,
-                             **loss_dict_reduced_unscaled)
+                             **loss_dict_reduced_unscaled,
+                             **gan_loss_dict_reduced_scaled,
+                             **gan_loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)
