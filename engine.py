@@ -18,7 +18,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     discriminator_model: torch.nn.Module, discriminator_criterion: torch.nn.Module,
                     data_loader: Iterable, data_loader_val_iter,
                     optimizer: torch.optim.Optimizer, discriminator_optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, max_norm: float = 0):
+                    device: torch.device, epoch: int, gan_loss_coef: float, batch_size: int, max_norm: float = 0):
     model.train()
     discriminator_model.train()
     criterion.train()
@@ -28,14 +28,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
-    gamma = 2
 
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
         samples_val, targets_val = next(data_loader_val_iter)  # TODO Create new data generator
         samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        N = 2   # TODO Read batch size from args
+        N = batch_size
         true_labels = torch.ones(N).to(device)
         fake_labels = torch.zeros(N).to(device)
 
@@ -60,7 +59,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-        total_loss = losses + gamma * generator_loss
+        total_loss = losses + gan_loss_coef * generator_loss
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -87,7 +86,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
         metric_logger.update(discriminator_loss_unscaled=discriminator_loss.data.item())
         metric_logger.update(generator_loss_unscaled=generator_loss.data.item())
-        metric_logger.update(generator_loss_scaled=(generator_loss*gamma).data.item())
+        metric_logger.update(generator_loss_scaled=(generator_loss*gan_loss_coef).data.item())
         metric_logger.update(total_loss=total_loss.data.item())
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
     # gather the stats from all processes

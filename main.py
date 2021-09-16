@@ -70,6 +70,7 @@ def get_args_parser():
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
+    parser.add_argument('--gan_loss_coef', default=2, type=float)
     parser.add_argument('--mask_loss_coef', default=1, type=float)
     parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)
@@ -177,11 +178,13 @@ def main(args):
 
     batch_sampler_train = torch.utils.data.BatchSampler(
         sampler_train, args.batch_size, drop_last=True)
+    batch_sampler_test = torch.utils.data.BatchSampler(
+        sampler_test, args.batch_size, drop_last=True)
 
     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    data_loader_test = DataLoader(dataset_test, args.batch_size, sampler=sampler_test,
-                                 drop_last=True, collate_fn=utils.collate_fn, num_workers=args.num_workers)
+    data_loader_test = DataLoader(dataset_test, batch_sampler=batch_sampler_test,
+                                  collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_test_iter = iter(cycle(data_loader_test))
@@ -234,6 +237,8 @@ def main(args):
         train_stats = train_one_epoch(
             model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
             optimizer, discriminator_optimizer, device, epoch,
+            args.gan_loss_coef,
+            args.batch_size,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
