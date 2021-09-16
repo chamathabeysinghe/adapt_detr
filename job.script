@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=V100_2_adapter_detr
+#SBATCH --job-name=V100_2_l1_mean
 #SBATCH --time=96:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:V100:1
 #SBATCH --partition=m3g
 source /home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/activate
-/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env main.py --dataset_file ant2 --data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_dataset --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_kl_v1_batch --resume /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_kl_v1/checkpoint.pth --kl_div --checkpoint_freq 1 --batch_size 4
+/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env main.py --dataset_file ant2 --data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_dataset --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_l1_mean_batch --resume /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_l1_mean/checkpoint.pth --kl_div --checkpoint_freq 1 --batch_size 4

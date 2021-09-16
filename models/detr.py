@@ -356,7 +356,7 @@ def build(args):
         weight_dict["loss_mask"] = args.mask_loss_coef
         weight_dict["loss_dice"] = args.dice_loss_coef
     if args.kl_div:
-        weight_dict["loss_kl"] = 20
+        weight_dict["loss_kl"] = 50
     # TODO this is a hack
     if args.aux_loss:
         aux_weight_dict = {}
