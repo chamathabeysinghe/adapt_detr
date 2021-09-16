@@ -84,8 +84,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_value = losses_reduced_scaled.item()
         total_loss_value = loss_value + gan_loss_dict_reduced_scaled['loss_generator'].item()
 
-        if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
+        if not math.isfinite(total_loss_value):
+            print("Loss is {}, stopping training".format(total_loss_value))
             print(loss_dict_reduced)
             sys.exit(1)
 
