@@ -211,12 +211,16 @@ def main(args):
         # del checkpoint['model']['class_embed.weight']
         # del checkpoint['model']['class_embed.bias']
         # del checkpoint['model']['query_embed.weight']
+        del checkpoint['optimizer']
+        del checkpoint['lr_scheduler']
+        del checkpoint['args']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if not args.eval and 'discriminator_model' in checkpoint:
             discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)
-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
+        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        if not args.eval and 'epoch' in checkpoint:
             args.start_epoch = checkpoint['epoch'] + 1
         if not args.eval and 'discriminator_optimizer' in checkpoint:
             discriminator_optimizer.load_state_dict(checkpoint['discriminator_optimizer'])
