@@ -132,17 +132,19 @@ def evaluate(model, criterion, discriminator_model, discriminator_criterion, pos
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         N = batch_size
         true_labels = torch.ones(N).to(device)
+        fake_labels = torch.zeros(N).to(device)
 
         outputs, _, target_features = model(samples)
         target_features = target_features[-1].tensors
         discriminator_output_target_new = discriminator_model(target_features).view(-1)
         generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
+        discriminator_loss = discriminator_criterion(discriminator_output_target_new, fake_labels)
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
 
         # for logging purpose
-        gan_loss_dict = {'loss_generator': generator_loss}
+        gan_loss_dict = {'loss_generator': generator_loss, 'loss_discriminator': discriminator_loss}
         gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
         gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                           for k, v in gan_loss_dict_reduced.items()}
