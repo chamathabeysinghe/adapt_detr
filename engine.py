@@ -43,7 +43,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         discriminator_optimizer.zero_grad()
         outputs, _, source_features = model(samples)
         source_features = source_features[-1].tensors
-        _, _, target_features = model(samples_val)
+        _, _, target_features = model(samples_val, feature_only=True)
         target_features = target_features[-1].tensors
         discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
         discriminator_loss_1 = discriminator_criterion(discriminator_output_source, true_labels)
