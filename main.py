@@ -159,7 +159,7 @@ def main(args):
     ]
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
-    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=0.01, weight_decay=args.weight_decay)
+    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=0.0001, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
     discriminator_lr_scheduler = torch.optim.lr_scheduler.StepLR(discriminator_optimizer, args.lr_drop)
 
