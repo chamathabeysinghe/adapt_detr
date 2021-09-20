@@ -20,7 +20,7 @@ from models import build_model, build_discriminator
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
     parser.add_argument('--lr', default=1e-4, type=float)
-    parser.add_argument('--lr_backbone', default=1e-5, type=float)
+    parser.add_argument('--lr_backbone', default=1e-4, type=float)
     parser.add_argument('--batch_size', default=2, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=2000, type=int)
@@ -159,7 +159,7 @@ def main(args):
     ]
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
-    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=args.lr, weight_decay=args.weight_decay)
+    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=0.01, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
     discriminator_lr_scheduler = torch.optim.lr_scheduler.StepLR(discriminator_optimizer, args.lr_drop)
 
