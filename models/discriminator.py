@@ -26,7 +26,7 @@ class Discriminator(nn.Module):
             nn.Linear(8 * 16 * 32, 1024),
             nn.Linear(1024, 256),
             nn.Linear(256, 64),
-            nn.Linear(128, 1),
+            nn.Linear(64, 1),
             nn.Sigmoid()
         )
 
