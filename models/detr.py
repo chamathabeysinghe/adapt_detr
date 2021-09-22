@@ -20,7 +20,7 @@ from .transformer import build_transformer
 
 class DETR(nn.Module):
     """ This is the DETR module that performs object detection """
-    def __init__(self, backbone, transformer, num_classes, num_queries, aux_loss=False):
+    def __init__(self, backbone):
         """ Initializes the model.
         Parameters:
             backbone: torch module of the backbone to be used. See backbone.py
@@ -31,15 +31,15 @@ class DETR(nn.Module):
             aux_loss: True if auxiliary decoding losses (loss at each decoder layer) are to be used.
         """
         super().__init__()
-        self.num_queries = num_queries
-        self.transformer = transformer
-        hidden_dim = transformer.d_model
-        self.class_embed = nn.Linear(hidden_dim, num_classes + 1)
-        self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)
-        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
+        # self.num_queries = num_queries
+        # self.transformer = transformer
+        # hidden_dim = transformer.d_model
+        # self.class_embed = nn.Linear(hidden_dim, num_classes + 1)
+        # self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
+        # self.query_embed = nn.Embedding(num_queries, hidden_dim)
+        # self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
         self.backbone = backbone
-        self.aux_loss = aux_loss
+        # self.aux_loss = aux_loss
 
     def forward(self, samples: NestedTensor, feature_only=False):
         """ The forward expects a NestedTensor, which consists of:
@@ -62,24 +62,24 @@ class DETR(nn.Module):
         if feature_only:
             return {}, {}, features
 
-        src, mask = features[-1].decompose()
-        assert mask is not None
-        hs, memory = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])
+        # src, mask = features[-1].decompose()
+        # assert mask is not None
+        # hs, memory = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])
+        #
+        # outputs_class = self.class_embed(hs)
+        # outputs_coord = self.bbox_embed(hs).sigmoid()
+        # out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
+        # if self.aux_loss:
+        #     out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
+        # return out, memory, features
 
-        outputs_class = self.class_embed(hs)
-        outputs_coord = self.bbox_embed(hs).sigmoid()
-        out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
-        if self.aux_loss:
-            out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
-        return out, memory, features
-
-    @torch.jit.unused
-    def _set_aux_loss(self, outputs_class, outputs_coord):
-        # this is a workaround to make torchscript happy, as torchscript
-        # doesn't support dictionary with non-homogeneous values, such
-        # as a dict having both a Tensor and a list.
-        return [{'pred_logits': a, 'pred_boxes': b}
-                for a, b in zip(outputs_class[:-1], outputs_coord[:-1])]
+    # @torch.jit.unused
+    # def _set_aux_loss(self, outputs_class, outputs_coord):
+    #     # this is a workaround to make torchscript happy, as torchscript
+    #     # doesn't support dictionary with non-homogeneous values, such
+    #     # as a dict having both a Tensor and a list.
+    #     return [{'pred_logits': a, 'pred_boxes': b}
+    #             for a, b in zip(outputs_class[:-1], outputs_coord[:-1])]
 
 
 class SetCriterion(nn.Module):
@@ -325,42 +325,42 @@ def build(args):
 
     backbone = build_backbone(args)
 
-    transformer = build_transformer(args)
+    # transformer = build_transformer(args)
 
     model = DETR(
         backbone,
-        transformer,
-        num_classes=num_classes,
-        num_queries=args.num_queries,
-        aux_loss=args.aux_loss,
+        # transformer,
+        # num_classes=num_classes,
+        # num_queries=args.num_queries,
+        # aux_loss=args.aux_loss,
     )
-    if args.masks:
-        model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
-    matcher = build_matcher(args)
-    weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
-    weight_dict['loss_giou'] = args.giou_loss_coef
-    weight_dict['loss_generator'] = args.gan_loss_coef
-    if args.masks:
-        weight_dict["loss_mask"] = args.mask_loss_coef
-        weight_dict["loss_dice"] = args.dice_loss_coef
-    # TODO this is a hack
-    if args.aux_loss:
-        aux_weight_dict = {}
-        for i in range(args.dec_layers - 1):
-            aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
-        weight_dict.update(aux_weight_dict)
+    # if args.masks:
+    #     model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
+    # matcher = build_matcher(args)
+    # weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
+    # weight_dict['loss_giou'] = args.giou_loss_coef
+    # weight_dict['loss_generator'] = args.gan_loss_coef
+    # if args.masks:
+    #     weight_dict["loss_mask"] = args.mask_loss_coef
+    #     weight_dict["loss_dice"] = args.dice_loss_coef
+    # # TODO this is a hack
+    # if args.aux_loss:
+    #     aux_weight_dict = {}
+    #     for i in range(args.dec_layers - 1):
+    #         aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
+    #     weight_dict.update(aux_weight_dict)
 
-    losses = ['labels', 'boxes', 'cardinality']
-    if args.masks:
-        losses += ["masks"]
-    criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
-                             eos_coef=args.eos_coef, losses=losses)
-    criterion.to(device)
-    postprocessors = {'bbox': PostProcess()}
-    if args.masks:
-        postprocessors['segm'] = PostProcessSegm()
-        if args.dataset_file == "coco_panoptic":
-            is_thing_map = {i: i <= 90 for i in range(201)}
-            postprocessors["panoptic"] = PostProcessPanoptic(is_thing_map, threshold=0.85)
+    # losses = ['labels', 'boxes', 'cardinality']
+    # if args.masks:
+    #     losses += ["masks"]
+    # criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
+    #                          eos_coef=args.eos_coef, losses=losses)
+    # criterion.to(device)
+    # postprocessors = {'bbox': PostProcess()}
+    # if args.masks:
+    #     postprocessors['segm'] = PostProcessSegm()
+    #     if args.dataset_file == "coco_panoptic":
+    #         is_thing_map = {i: i <= 90 for i in range(201)}
+    #         postprocessors["panoptic"] = PostProcessPanoptic(is_thing_map, threshold=0.85)
 
-    return model, criterion, postprocessors
+    return model #, criterion, postprocessors

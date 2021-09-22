@@ -124,7 +124,7 @@ def main(args):
     np.random.seed(seed)
     random.seed(seed)
 
-    model, criterion, postprocessors = build_model(args)
+    model = build_model(args)
     discriminator_model, discriminator_criterion = build_discriminator(args)
 
     def deactivate_batchnorm(m):
@@ -237,12 +237,12 @@ def main(args):
             discriminator_optimizer.load_state_dict(checkpoint['discriminator_optimizer'])
             discriminator_lr_scheduler.load_state_dict(checkpoint['discriminator_lr_scheduler'])
 
-    if args.eval:
-        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir)
-        if args.output_dir:
-            utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
-        return
+    # if args.eval:
+    #     test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
+    #                                           data_loader_val, base_ds, device, args.output_dir)
+    #     if args.output_dir:
+    #         utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
+    #     return
 
     print("Start training")
     start_time = time.time()
@@ -250,7 +250,7 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
+            model, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
             optimizer, discriminator_optimizer, device, epoch,
             args.gan_loss_coef,
             args.batch_size,
@@ -273,9 +273,9 @@ def main(args):
                     'args': args,
                 }, checkpoint_path)
 
-        test_stats, coco_evaluator = evaluate(
-            model, criterion, discriminator_model, discriminator_criterion,
-            postprocessors, data_loader_val, base_ds, device, args.output_dir,
+        test_stats = evaluate(
+            model, discriminator_model, discriminator_criterion,
+            data_loader_val, base_ds, device, args.output_dir,
             args.batch_size
         )
 
@@ -289,15 +289,15 @@ def main(args):
                 f.write(json.dumps(log_stats) + "\n")
 
             # for evaluation logs
-            if coco_evaluator is not None:
-                (output_dir / 'eval').mkdir(exist_ok=True)
-                if "bbox" in coco_evaluator.coco_eval:
-                    filenames = ['latest.pth']
-                    if epoch % 50 == 0:
-                        filenames.append(f'{epoch:03}.pth')
-                    for name in filenames:
-                        torch.save(coco_evaluator.coco_eval["bbox"].eval,
-                                   output_dir / "eval" / name)
+            # if coco_evaluator is not None:
+            #     (output_dir / 'eval').mkdir(exist_ok=True)
+            #     if "bbox" in coco_evaluator.coco_eval:
+            #         filenames = ['latest.pth']
+            #         if epoch % 50 == 0:
+            #             filenames.append(f'{epoch:03}.pth')
+            #         for name in filenames:
+            #             torch.save(coco_evaluator.coco_eval["bbox"].eval,
+            #                        output_dir / "eval" / name)
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
