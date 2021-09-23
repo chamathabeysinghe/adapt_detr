@@ -14,7 +14,7 @@ from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
 from models.backbone import FrozenBatchNorm2d
 from util.misc import accuracy_discriminator
-
+import numpy as np
 
 def deactivate_batchnorm(m):
     if isinstance(m, FrozenBatchNorm2d):
@@ -43,8 +43,8 @@ def train_one_epoch(model: torch.nn.Module,
         samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         N = batch_size
-        true_labels = torch.ones(N).to(device)
-        fake_labels = torch.zeros(N).to(device)
+        true_labels = torch.tensor(np.random.uniform(low=0.7, high=1.0, size=(N,))).float().to(device)
+        fake_labels = torch.tensor(np.random.uniform(low=0.0, high=0.3, size=(N,))).float().to(device)
 
 
         # Train discriminator

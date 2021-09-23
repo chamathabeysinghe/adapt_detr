@@ -453,7 +453,7 @@ def accuracy_discriminator(output, target, threshold=0.5):
     if target.numel() == 0:
         return [torch.zeros([], device=output.device)]
     batch_size = target.size(0)
-    correct = torch.sum(target.bool() == (output > threshold))
+    correct = torch.sum((target > threshold) == (output > threshold))
     return correct * 100 / batch_size
 
 
