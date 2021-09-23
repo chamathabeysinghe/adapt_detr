@@ -261,14 +261,14 @@ def main(args):
                     'args': args,
                 }, checkpoint_path)
 
-        test_stats = evaluate(
-            model, discriminator_model, discriminator_criterion,
-            data_loader_val, base_ds, device, args.output_dir,
-            args.batch_size
-        )
+        # test_stats = evaluate(
+        #     model, discriminator_model, discriminator_criterion,
+        #     data_loader_val, base_ds, device, args.output_dir,
+        #     args.batch_size
+        # )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
+                     # **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
 
