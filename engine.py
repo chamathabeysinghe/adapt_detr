@@ -52,6 +52,8 @@ def train_one_epoch(model: torch.nn.Module,
         discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
         discriminator_loss_2 = discriminator_criterion(discriminator_output_target, fake_labels)
         discriminator_loss_2.backward()
+        if max_norm > 0:
+            torch.nn.utils.clip_grad_norm_(discriminator_model.parameters(), max_norm)
         discriminator_optimizer.step()
 
         # Train Generator + Transformer
