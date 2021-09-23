@@ -447,6 +447,16 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
+@torch.no_grad()
+def accuracy_discriminator(output, target, threshold=0.5):
+    """Computes the precision@k for the specified values of k"""
+    if target.numel() == 0:
+        return [torch.zeros([], device=output.device)]
+    batch_size = target.size(0)
+    correct = torch.sum(target.bool() == (output > threshold))
+    return correct * 100 / batch_size
+
+
 def interpolate(input, size=None, scale_factor=None, mode="nearest", align_corners=None):
     # type: (Tensor, Optional[List[int]], Optional[float], str, Optional[bool]) -> Tensor
     """

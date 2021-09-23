@@ -13,6 +13,7 @@ import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
 from models.backbone import FrozenBatchNorm2d
+from util.misc import accuracy_discriminator
 
 
 def deactivate_batchnorm(m):
@@ -48,16 +49,19 @@ def train_one_epoch(model: torch.nn.Module,
 
         # Train discriminator
         discriminator_optimizer.zero_grad()
-        outputs, _, source_features = model(samples, feature_only=True)
+        _, _, source_features = model(samples, feature_only=True)
         source_features = source_features[-1].tensors
         _, _, target_features = model(samples_val, feature_only=True)
         target_features = target_features[-1].tensors
         discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
         discriminator_loss_1 = discriminator_criterion(discriminator_output_source, true_labels)
+        discriminator_accuracy_1 = accuracy_discriminator(discriminator_output_source, true_labels)
         discriminator_loss_1.backward()
 
         discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
         discriminator_loss_2 = discriminator_criterion(discriminator_output_target, fake_labels)
+        discriminator_accuracy_2 = accuracy_discriminator(discriminator_output_target, fake_labels)
+
         discriminator_loss_2.backward()
         if max_norm > 0:
             torch.nn.utils.clip_grad_norm_(discriminator_model.parameters(), max_norm)
@@ -66,6 +70,7 @@ def train_one_epoch(model: torch.nn.Module,
         # Train Generator + Transformer
         discriminator_output_target_new = discriminator_model(target_features).view(-1)
         generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
+        generator_accuracy = accuracy_discriminator(discriminator_output_target_new, true_labels)
 
         # loss_dict = criterion(outputs, targets)
         # weight_dict = criterion.weight_dict
@@ -76,7 +81,12 @@ def train_one_epoch(model: torch.nn.Module,
         weight_dict = {}
         weight_dict['loss_generator'] = 1
         gan_loss_dict = {'loss_generator': generator_loss,
-                         'loss_discriminator': discriminator_loss_1+discriminator_loss_2}
+                         'loss_discriminator_source': discriminator_loss_1,
+                         'loss_discriminator_target': discriminator_loss_2,
+                         'accuracy_generator': generator_accuracy,
+                         'accuracy_discriminator_source': discriminator_accuracy_1,
+                         'accuracy_discriminator_target': discriminator_accuracy_2,
+                         }
         gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
         gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in gan_loss_dict_reduced.items()}
