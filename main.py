@@ -5,7 +5,6 @@ import json
 import random
 import time
 from pathlib import Path
-from models.backbone import FrozenBatchNorm2d
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, DistributedSampler
@@ -126,17 +125,6 @@ def main(args):
 
     model = build_model(args)
     discriminator_model, discriminator_criterion = build_discriminator(args)
-
-    def deactivate_batchnorm(m):
-        if isinstance(m, FrozenBatchNorm2d):
-            # m.reset_parameters()
-            m.eval()
-            # with torch.no_grad():
-            #     m.weight.fill_(1.0)
-            #     m.bias.zero_()
-
-
-    model.apply(deactivate_batchnorm)
     model.to(device)
     discriminator_model.to(device)
 

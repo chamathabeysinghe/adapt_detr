@@ -12,6 +12,12 @@ import torch
 import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
+from models.backbone import FrozenBatchNorm2d
+
+
+def deactivate_batchnorm(m):
+    if isinstance(m, FrozenBatchNorm2d):
+        m.eval()
 
 
 def train_one_epoch(model: torch.nn.Module,
@@ -20,6 +26,7 @@ def train_one_epoch(model: torch.nn.Module,
                     optimizer: torch.optim.Optimizer, discriminator_optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, gan_loss_coef: float, batch_size: int, max_norm: float = 0):
     model.train()
+    model.apply(deactivate_batchnorm)
     discriminator_model.train()
     # criterion.train()
     discriminator_criterion.train()
