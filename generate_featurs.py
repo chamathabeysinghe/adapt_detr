@@ -87,6 +87,8 @@ def get_args_parser():
 
     parser.add_argument('--output_dir', default='',
                         help='path where to save the results, empty for no saving')
+    parser.add_argument('--output_file', default='',
+                        help='path where to save the results, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--resume', default='', help='resume from checkpoint')
@@ -151,6 +153,6 @@ if __name__ == "__main__":
 
     video_files = VIDEO_CLIPS['train'] + VIDEO_CLIPS['test_minified']
 
-    with open('output_after_gan.csv', 'w') as outfile:
+    with open(os.path.join(args.output_dir, args.output_file), 'w') as outfile:
         for f in video_files:
             process_video_file(f, model, device, outfile)
