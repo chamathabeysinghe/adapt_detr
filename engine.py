@@ -12,6 +12,13 @@ import torch
 import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
+from models.backbone import FrozenBatchNorm2d
+from util.misc import accuracy_discriminator
+import numpy as np
+
+def deactivate_batchnorm(m):
+    if isinstance(m, FrozenBatchNorm2d):
+        m.eval()
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -20,6 +27,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     optimizer: torch.optim.Optimizer, discriminator_optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, gan_loss_coef: float, batch_size: int, max_norm: float = 0):
     model.train()
+    model.apply(deactivate_batchnorm)
     discriminator_model.train()
     criterion.train()
     discriminator_criterion.train()
@@ -35,8 +43,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         N = batch_size
-        true_labels = torch.ones(N).to(device)
-        fake_labels = torch.zeros(N).to(device)
+        true_labels = torch.tensor(np.random.uniform(low=0.7, high=1.0, size=(N,))).float().to(device)
+        fake_labels = torch.tensor(np.random.uniform(low=0.0, high=0.3, size=(N,))).float().to(device)
 
 
         # Train discriminator
@@ -47,16 +55,22 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         target_features = target_features[-1].tensors
         discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
         discriminator_loss_1 = discriminator_criterion(discriminator_output_source, true_labels)
+        discriminator_accuracy_1 = accuracy_discriminator(discriminator_output_source, true_labels)
         discriminator_loss_1.backward()
 
         discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
         discriminator_loss_2 = discriminator_criterion(discriminator_output_target, fake_labels)
+        discriminator_accuracy_2 = accuracy_discriminator(discriminator_output_target, fake_labels)
+
         discriminator_loss_2.backward()
+        if max_norm > 0:
+            torch.nn.utils.clip_grad_norm_(discriminator_model.parameters(), max_norm)
         discriminator_optimizer.step()
 
         # Train Generator + Transformer
         discriminator_output_target_new = discriminator_model(target_features).view(-1)
         generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
+        generator_accuracy = accuracy_discriminator(discriminator_output_target_new, true_labels)
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
@@ -65,7 +79,12 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # for logging purpose
         gan_loss_dict = {'loss_generator': generator_loss,
-                         'loss_discriminator': discriminator_loss_1+discriminator_loss_2}
+                         'loss_discriminator_source': discriminator_loss_1,
+                         'loss_discriminator_target': discriminator_loss_2,
+                         'accuracy_generator': generator_accuracy,
+                         'accuracy_discriminator_source': discriminator_accuracy_1,
+                         'accuracy_discriminator_target': discriminator_accuracy_2,
+                         }
         gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
         gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in gan_loss_dict_reduced.items()}
