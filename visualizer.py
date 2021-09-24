@@ -73,6 +73,7 @@ def get_args_parser():
                         help="Type of positional embedding to use on top of the image features")
 
     # * Transformer
+    parser.add_argument('--gan_loss_coef', default=2, type=float)
     parser.add_argument('--enc_layers', default=6, type=int,
                         help="Number of encoding layers in the transformer")
     parser.add_argument('--dec_layers', default=6, type=int,
@@ -168,7 +169,7 @@ def infer(images_path, model, postprocessors, device, output_path):
         ]
 
         start_t = time.perf_counter()
-        outputs, _ = model(image)
+        outputs, _, _ = model(image)
         end_t = time.perf_counter()
 
         outputs["pred_logits"] = outputs["pred_logits"].cpu()

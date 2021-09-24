@@ -120,7 +120,7 @@ def infer_features(frames, video_file, model, device, outfile):
         features = features.squeeze().sum(axis=0).flatten()
         end_t = time.perf_counter()
 
-        features = list(map(str, features.numpy()))
+        features = list(map(str, features.cpu().numpy()))
         line = ",".join([video_file] + list(map(str, features))) + "\n"
         outfile.write(line)
         infer_time = end_t - start_t
@@ -130,7 +130,7 @@ def infer_features(frames, video_file, model, device, outfile):
 
 def process_video_file(vid_file, model, device, outfile):
     video_path = os.path.join(DATASET_DIR, 'raw_data', 'videos', f'{vid_file}.mp4')
-    frames = get_frames(video_path, skip=50)
+    frames = get_frames(video_path, skip=3)
     frames = [Image.fromarray(f) for f in frames]
     infer_features(frames, vid_file, model, device, outfile)
 
