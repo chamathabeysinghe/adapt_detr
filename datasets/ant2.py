@@ -26,6 +26,7 @@ class AntDetection(torchvision.datasets.CocoDetection):
         self._train_transforms_reduced = get_train_transforms_torch_reduced()
         self._train_transforms_torch = get_train_transforms_torch()
         self._val_transforms_torch = get_val_transforms_torch()
+        self._test_minified_transforms_torch = get_test_minified_transforms_torch()
 
         self.prepare = ConvertAntPolysToMask(return_masks)
         self.image_set = image_set
@@ -62,13 +63,21 @@ class AntDetection(torchvision.datasets.CocoDetection):
                     img, target = self._train_transforms_torch(img, target)
             return img, target
 
-        elif self.image_set == 'val' or self.image_set == 'test' or self.image_set == 'test_minified':
+        elif self.image_set == 'val' or self.image_set == 'test':
             img, target = super(AntDetection, self).__getitem__(idx)
             image_id = self.ids[idx]
             target = {'image_id': image_id, 'annotations': target}
             img, target = self.prepare(img, target)
             if self._val_transforms_torch is not None:
                 img, target = self._val_transforms_torch(img, target)
+            return img, target
+        elif self.image_set == 'test_minified':
+            img, target = super(AntDetection, self).__getitem__(idx)
+            image_id = self.ids[idx]
+            target = {'image_id': image_id, 'annotations': target}
+            img, target = self.prepare(img, target)
+            if self._test_minified_transforms_torch is not None:
+                img, target = self._test_minified_transforms_torch(img, target)
             return img, target
 
 
@@ -224,6 +233,18 @@ def get_val_transforms_torch():
         T.RandomResize([(1024, 542)], max_size=1333),
         normalize,
     ])
+
+def get_test_minified_transforms_torch():
+    normalize = T.Compose([
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    return T.Compose([
+        T.RandomResize([(1024, 542)], max_size=1333),
+        normalize,
+        T.AddGaussianNoise(0., .05)
+    ])
+
 
 
 def build(image_set, args):
