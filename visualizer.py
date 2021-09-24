@@ -123,6 +123,7 @@ def get_args_parser():
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--gan_loss_coef', default=2, type=float)
 
     parser.add_argument('--thresh', default=0.5, type=float)
 

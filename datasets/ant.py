@@ -125,11 +125,11 @@ def make_Ant_transforms(image_set):
         return T.Compose([
             T.RandomHorizontalFlip(),
             T.RandomSelect(
-                T.RandomResize(scales, max_size=1333),
+                T.RandomResize([(1024, 542)], max_size=1333),
                 T.Compose([
                     T.RandomResize([400, 500, 600]),
                     T.RandomSizeCrop(384, 600),
-                    T.RandomResize(scales, max_size=1333),
+                    T.RandomResize([(1024, 542)], max_size=1333),
                 ])
             ),
             normalize,
@@ -137,7 +137,7 @@ def make_Ant_transforms(image_set):
 
     if image_set == 'val':
         return T.Compose([
-            T.RandomResize([800], max_size=1333),
+            T.RandomResize([(1024, 542)], max_size=1333),
             normalize,
         ])
 
