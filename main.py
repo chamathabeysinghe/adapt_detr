@@ -147,7 +147,7 @@ def main(args):
     print('number of params:', n_parameters)
 
     param_dicts = [
-        {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" not in n and p.requires_grad]},
+        # {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" not in n and p.requires_grad]},
         {
             "params": [p for n, p in model_without_ddp.named_parameters() if "backbone" in n and p.requires_grad],
             "lr": args.lr_backbone,
@@ -213,6 +213,9 @@ def main(args):
         del checkpoint['optimizer']
         del checkpoint['lr_scheduler']
         del checkpoint['args']
+        # del checkpoint['discriminator_model']
+        # del checkpoint['discriminator_optimizer']
+        # del checkpoint['discriminator_lr_scheduler']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if not args.eval and 'discriminator_model' in checkpoint:
             discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)

@@ -242,7 +242,7 @@ def get_test_minified_transforms_torch():
     return T.Compose([
         T.RandomResize([(1024, 542)], max_size=1333),
         normalize,
-        T.AddGaussianNoise(0., 1.)
+        T.AddGaussianNoise(0., .05)
     ])
 
 
