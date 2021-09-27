@@ -211,10 +211,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
-    args = parser.parse_args()
-    if args.output_dir:
-        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    # for i in range(200, 247):
-    #     args.resume = f'/home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_detr_gan_from_dice_server/checkpoint0{i}.pth'
-    main(args)
+    for i in range(200, 247):
+        parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
+        args = parser.parse_args()
+        if args.output_dir:
+            Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+        args.resume = f'/home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_detr_gan_from_dice_server/checkpoint0{i}.pth'
+        main(args)
