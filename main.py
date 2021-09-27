@@ -230,8 +230,11 @@ def main(args):
             discriminator_lr_scheduler.load_state_dict(checkpoint['discriminator_lr_scheduler'])
 
     if args.eval:
-        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir)
+        test_stats, coco_evaluator = evaluate(
+            model, criterion, discriminator_model, discriminator_criterion,
+            postprocessors, data_loader_val, base_ds, device, args.output_dir,
+            args.batch_size
+        )
         if args.output_dir:
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
