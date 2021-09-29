@@ -62,7 +62,6 @@ def get_args_parser():
     # Loss
     parser.add_argument('--no_aux_loss', dest='aux_loss', action='store_false',
                         help="Disables auxiliary decoding losses (loss at each layer)")
-    parser.add_argument('--gan_loss_coef', default=1, type=float)
 
     # * Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
@@ -72,7 +71,7 @@ def get_args_parser():
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
-    parser.add_argument('--gan_loss_coef', default=2, type=float)
+    parser.add_argument('--gan_loss_coef', default=1, type=float)
     parser.add_argument('--mask_loss_coef', default=1, type=float)
     parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)
