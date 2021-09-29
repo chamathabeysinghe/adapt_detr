@@ -272,7 +272,7 @@ def main(args):
 
         test_stats, coco_evaluator = evaluate(
             model, criterion, discriminator_model, discriminator_criterion,
-            postprocessors, data_loader_val, base_ds, device, args.output_dir,
+            postprocessors, data_loader_test, base_ds, device, args.output_dir,
             args.batch_size
         )
 
