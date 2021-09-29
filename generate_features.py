@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     device = torch.device(args.device)
 
-    model = build_model(args)
+    model, criterion, postprocessors = build_model(args)
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'], strict=False)
