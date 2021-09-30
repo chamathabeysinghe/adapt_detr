@@ -14,7 +14,7 @@ import datasets
 import util.misc as utils
 from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch
-from models import build_model, build_discriminator
+from models import build_model
 
 
 def get_args_parser():
@@ -59,10 +59,10 @@ def get_args_parser():
     # * Segmentation
     parser.add_argument('--masks', action='store_true',
                         help="Train segmentation head if the flag is provided")
+
     # Loss
     parser.add_argument('--no_aux_loss', dest='aux_loss', action='store_false',
                         help="Disables auxiliary decoding losses (loss at each layer)")
-
     # * Matcher
     parser.add_argument('--set_cost_class', default=1, type=float,
                         help="Class coefficient in the matching cost")
@@ -71,7 +71,6 @@ def get_args_parser():
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
-    parser.add_argument('--gan_loss_coef', default=1, type=float)
     parser.add_argument('--mask_loss_coef', default=1, type=float)
     parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)
@@ -103,12 +102,6 @@ def get_args_parser():
     return parser
 
 
-def cycle(iterable):
-    while True:
-        for x in iterable:
-            yield x
-
-
 def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
@@ -126,9 +119,7 @@ def main(args):
     random.seed(seed)
 
     model, criterion, postprocessors = build_model(args)
-    discriminator_model, discriminator_criterion = build_discriminator(args)
     model.to(device)
-    discriminator_model.to(device)
 
     # for n,p in model.named_parameters():
     #     if "backbone" in n:
@@ -137,14 +128,9 @@ def main(args):
         #     p.requires_grad_(False)
 
     model_without_ddp = model
-    discriminator_model_without_ddp = discriminator_model
-
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
-        discriminator_model = torch.nn.parallel.DistributedDataParallel(discriminator_model, device_ids=[args.gpu])
-        discriminator_model_without_ddp = discriminator_model.module
-
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
 
@@ -155,14 +141,9 @@ def main(args):
             "lr": args.lr_backbone,
         },
     ]
-    discriminator_param_dicts = [
-        {"params": [p for n, p in discriminator_model_without_ddp.named_parameters() if p.requires_grad]}
-    ]
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
-    discriminator_optimizer = torch.optim.AdamW(discriminator_param_dicts, lr=0.0001, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
-    discriminator_lr_scheduler = torch.optim.lr_scheduler.StepLR(discriminator_optimizer, args.lr_drop)
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_test = build_dataset(image_set='test_minified', args=args)
@@ -188,7 +169,6 @@ def main(args):
                                   collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    data_loader_test_iter = iter(cycle(data_loader_test))
 
     if args.dataset_file == "coco_panoptic":
         # We also evaluate AP during panoptic training, on original coco DS
@@ -200,7 +180,6 @@ def main(args):
     if args.frozen_weights is not None:
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
         model_without_ddp.detr.load_state_dict(checkpoint['model'])
-        discriminator_model_without_ddp.detr.load_state_dict(checkpoint['discriminator_model'])
 
     output_dir = Path(args.output_dir)
     if args.resume:
@@ -219,23 +198,15 @@ def main(args):
         # del checkpoint['discriminator_optimizer']
         # del checkpoint['discriminator_lr_scheduler']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        if not args.eval and 'discriminator_model' in checkpoint:
-            discriminator_model_without_ddp.load_state_dict(checkpoint['discriminator_model'], strict=False)
-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint:
+        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         if not args.eval and 'epoch' in checkpoint:
             args.start_epoch = checkpoint['epoch'] + 1
-        if not args.eval and 'discriminator_optimizer' in checkpoint:
-            discriminator_optimizer.load_state_dict(checkpoint['discriminator_optimizer'])
-            discriminator_lr_scheduler.load_state_dict(checkpoint['discriminator_lr_scheduler'])
 
     if args.eval:
-        test_stats, coco_evaluator = evaluate(
-            model, criterion, discriminator_model, discriminator_criterion,
-            postprocessors, data_loader_val, base_ds, device, args.output_dir,
-            args.batch_size
-        )
+        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
+                                              data_loader_val, base_ds, device, args.output_dir)
         if args.output_dir:
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
@@ -246,10 +217,7 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
-            optimizer, discriminator_optimizer, device, epoch,
-            args.gan_loss_coef,
-            args.batch_size,
+            model, criterion, data_loader_train, optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
@@ -260,19 +228,14 @@ def main(args):
             for checkpoint_path in checkpoint_paths:
                 utils.save_on_master({
                     'model': model_without_ddp.state_dict(),
-                    'discriminator_model': discriminator_model_without_ddp.state_dict(),
                     'optimizer': optimizer.state_dict(),
-                    'discriminator_optimizer': discriminator_optimizer.state_dict(),
                     'lr_scheduler': lr_scheduler.state_dict(),
-                    'discriminator_lr_scheduler': discriminator_lr_scheduler.state_dict(),
                     'epoch': epoch,
                     'args': args,
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, discriminator_model, discriminator_criterion,
-            postprocessors, data_loader_test, base_ds, device, args.output_dir,
-            args.batch_size
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
