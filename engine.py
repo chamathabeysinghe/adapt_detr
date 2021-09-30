@@ -54,12 +54,12 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         _, _, target_features = model(samples_val, feature_only=True)
         target_features = target_features[-1].tensors
         discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
-        discriminator_loss_1 = discriminator_criterion(discriminator_output_source, true_labels)
+        discriminator_loss_1 = gan_loss_coef * discriminator_criterion(discriminator_output_source, true_labels)
         discriminator_accuracy_1 = accuracy_discriminator(discriminator_output_source, true_labels)
         discriminator_loss_1.backward()
 
         discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
-        discriminator_loss_2 = discriminator_criterion(discriminator_output_target, fake_labels)
+        discriminator_loss_2 = gan_loss_coef * discriminator_criterion(discriminator_output_target, fake_labels)
         discriminator_accuracy_2 = accuracy_discriminator(discriminator_output_target, fake_labels)
 
         discriminator_loss_2.backward()
