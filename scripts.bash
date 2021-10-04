@@ -75,6 +75,9 @@ python visualizer.py --device cpu --dataset_file ant --data_path /Users/cabe0006
 
 /home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py --dataset_file ant2 --data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_dataset/test --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/temp_predictions/adapt_detr/kl_test --resume /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_kl_v2/checkpoint.pth
 
+### MAP values for training dataset
+/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env train_evaluation.py --dataset_file ant2 --data_path /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_dataset_small --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/train_map_values_freeze_generator_2 --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/checkpoints_freeze_generator_2/checkpoint0000.pth --batch_size 8 --lr_backbone 0.0001 --eval
+
 
 
 #Local environment

@@ -174,6 +174,7 @@ def main(args):
 
     output_dir = Path(args.output_dir)
     if args.resume:
+        print('Load checkpoint from: ' + args.resume)
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
@@ -211,10 +212,10 @@ def main(args):
 
 
 if __name__ == '__main__':
-    for i in range(200, 247):
+    for i in range(225, 283):
         parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
         args = parser.parse_args()
         if args.output_dir:
             Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-        args.resume = f'/home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/checkpoints_detr_gan_from_dice_server/checkpoint0{i}.pth'
+        args.resume = f'/dice1-data/home/cabe0006/cvpr_experiments/detr_output/checkpoints_freeze_generator_2/checkpoint0{i}.pth'
         main(args)
