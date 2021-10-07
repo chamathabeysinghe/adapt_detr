@@ -27,7 +27,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # The loss is the BCE loss combined with the KL divergence to ensure the distribution is learnt
         kl_divergence = 0.5 * torch.sum(-1 - logVar + mu.pow(2) + logVar.exp())
-        bce_loss = F.binary_cross_entropy(out, imgs, size_average=False)
+        bce_loss = F.mse_loss(out, imgs, size_average=False)
         loss = bce_loss + kl_divergence
         # Backpropagation based on the loss
         optimizer.zero_grad()

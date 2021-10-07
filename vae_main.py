@@ -47,6 +47,7 @@ def get_args_parser():
     # parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--checkpoint_freq', default=5, type=int)
+    parser.add_argument('--eval', default=False)
     # distributed training parameters
     # parser.add_argument('--world_size', default=1, type=int,
     #                     help='number of distributed processes')
