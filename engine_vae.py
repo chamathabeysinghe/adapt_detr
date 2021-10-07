@@ -18,8 +18,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
 
-    for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
-        imgs = samples.tensors
+    for imgs in metric_logger.log_every(data_loader, print_freq, header):
         imgs = imgs.to(device)
 
         # Feeding a batch of images into the network to obtain the output image, mu, and logVar

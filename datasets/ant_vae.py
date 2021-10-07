@@ -69,8 +69,8 @@ def build(image_set, args):
     root = Path(args.data_path)
     assert root.exists(), f'provided Ant path {root} does not exist'
     PATHS = {
-        "train": ['train', 'test'],
-        "test": ['test'],
+        "train": ['train', 'val'],
+        "test": ['val'],
     }
 
     img_folders = PATHS[image_set]
