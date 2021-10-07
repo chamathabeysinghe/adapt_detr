@@ -13,7 +13,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     with tqdm(data_loader, unit='batch') as tepoch:
         for data in tepoch:
             tepoch.set_description(f"Epoch {epoch}")
-            imgs, _ = data
+            imgs = data[0].tensors
+            # imgs, _ = data
             imgs = imgs.to(device)
 
             # Feeding a batch of images into the network to obtain the output image, mu, and logVar

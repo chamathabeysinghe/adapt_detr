@@ -18,13 +18,14 @@ import util.misc as utils
 # from datasets import build_dataset, get_coco_api_from_dataset
 from engine_vae import train_one_epoch
 from models_vae import build_model
+from datasets import build_dataset
 
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set VAE network', add_help=False)
     parser.add_argument('--lr', default=1e-3, type=float)
     # parser.add_argument('--lr_backbone', default=1e-4, type=float)
-    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=2000, type=int)
     parser.add_argument('--lr_drop', default=200, type=int)
@@ -32,7 +33,8 @@ def get_args_parser():
                         help='gradient clipping max norm')
 
     # dataset parameters
-    # parser.add_argument('--dataset_file', default='coco')
+    parser.add_argument('--dataset_file', default='ant2')
+    parser.add_argument('--masks', default=False)
     parser.add_argument('--data_path', type=str)
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')
@@ -73,13 +75,21 @@ def main(args):
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
-    train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(args.data_path, train=True, download=True,
-                       transform=transforms.ToTensor()),
-        batch_size=args.batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(args.data_path, train=False, transform=transforms.ToTensor()),
-        batch_size=1)
+
+    dataset_train = build_dataset(image_set='train', args=args)
+    sampler_train = torch.utils.data.RandomSampler(dataset_train)
+    batch_sampler_train = torch.utils.data.BatchSampler(
+        sampler_train, args.batch_size, drop_last=True)
+    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
+                                   collate_fn=utils.collate_fn, num_workers=args.num_workers)
+
+    # train_loader = torch.utils.data.DataLoader(
+    #     datasets.MNIST(args.data_path, train=True, download=True,
+    #                    transform=transforms.ToTensor()),
+    #     batch_size=args.batch_size, shuffle=True)
+    # test_loader = torch.utils.data.DataLoader(
+    #     datasets.MNIST(args.data_path, train=False, transform=transforms.ToTensor()),
+    #     batch_size=1)
 
     output_dir = Path(args.output_dir)
     if args.resume:
@@ -94,7 +104,7 @@ def main(args):
 
     for epoch in range(args.start_epoch, args.epochs):
         train_stats = train_one_epoch(
-            model, criterion, train_loader, optimizer, device, epoch
+            model, criterion, data_loader_train, optimizer, device, epoch
         )
         lr_scheduler.step()
         if args.output_dir:
