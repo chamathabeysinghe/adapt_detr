@@ -23,11 +23,26 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # Feeding a batch of images into the network to obtain the output image, mu, and logVar
         out, mu, logVar = model(imgs)
-
+        # print('************************')
+        # print('************************')
+        # print('************************')
+        # print('************************')
+        # print("Outputs...")
+        # print(torch.mean(out))
+        # print(torch.mean(mu))
+        # print(torch.mean(logVar))
         # The loss is the BCE loss combined with the KL divergence to ensure the distribution is learnt
         kl_divergence = 0.5 * torch.sum(-1 - logVar + mu.pow(2) + logVar.exp())
-        bce_loss = F.mse_loss(out, imgs, size_average=False)
+        bce_loss = 0.05 * F.mse_loss(out, imgs, size_average=False)
         loss = bce_loss + kl_divergence
+        # print("LOSSES...")
+        # print(bce_loss)
+        # print(kl_divergence)
+        # print(loss)
+        # print("Data distributions...")
+        # print(f"Images: {torch.mean(imgs)}")
+        # print(f"Predictions: {torch.mean(out)}")
+        # print(f"Difference: {torch.sum(torch.abs(imgs-out))}")
         # Backpropagation based on the loss
         optimizer.zero_grad()
         loss.backward()

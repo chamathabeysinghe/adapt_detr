@@ -24,8 +24,10 @@ from datasets import build_dataset
 def get_args_parser():
     parser = argparse.ArgumentParser('Set VAE network', add_help=False)
     parser.add_argument('--lr', default=1e-3, type=float)
+    parser.add_argument('--backbone', default='resnet50')
+    parser.add_argument('--dilation', default=False)
     # parser.add_argument('--lr_backbone', default=1e-4, type=float)
-    parser.add_argument('--batch_size', default=16, type=int)
+    parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=2000, type=int)
     parser.add_argument('--lr_drop', default=200, type=int)

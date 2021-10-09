@@ -1,4 +1,4 @@
-from .vae import build
+from .vae_resnet import build
 
 
 def build_model(args):
