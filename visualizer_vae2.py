@@ -27,7 +27,7 @@ device = torch.device('cuda')
 model, criterion = build_model(args)
 model.to(device)
 
-checkpoint_path = '/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/checkpoint0024.pth'
+checkpoint_path = '/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/checkpoint0019.pth'
 checkpoint = torch.load(checkpoint_path, map_location='cpu')
 model.load_state_dict(checkpoint['model'], strict=True)
 
@@ -67,11 +67,11 @@ with torch.no_grad():
 
         vis = (np.concatenate((show_img1, show_img2), axis=1) * 255).astype(np.uint8)
         # plt.imshow(vis)
-        cv2.imwrite(f'/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/predictions_24/{idx}.png', vis)
+        cv2.imwrite(f'/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/predictions_19/{idx}.png', vis)
 
         # plt.savefig('foo.png')
         # plt.show()
-        if idx > 1000:
+        if idx > 500:
             break
 
 

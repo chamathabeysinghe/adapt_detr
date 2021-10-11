@@ -20,3 +20,5 @@ output
 output_server
 scripts.bash
 checkpoints
+.run
+runs
