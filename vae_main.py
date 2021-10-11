@@ -27,7 +27,7 @@ def get_args_parser():
     parser.add_argument('--backbone', default='resnet50')
     parser.add_argument('--dilation', default=False)
     # parser.add_argument('--lr_backbone', default=1e-4, type=float)
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=2000, type=int)
     parser.add_argument('--lr_drop', default=200, type=int)

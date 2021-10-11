@@ -32,8 +32,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         # print(torch.mean(mu))
         # print(torch.mean(logVar))
         # The loss is the BCE loss combined with the KL divergence to ensure the distribution is learnt
-        kl_divergence = 0.5 * torch.sum(-1 - logVar + mu.pow(2) + logVar.exp())
-        bce_loss = 0.05 * F.mse_loss(out, imgs, size_average=False)
+        kl_divergence = torch.mean(0.5 * torch.sum(-1 - logVar + mu.pow(2) + logVar.exp(), dim=(1, 2, 3)), dim=0)
+        bce_loss = 0.001 * F.mse_loss(out, imgs, size_average=False)
         loss = bce_loss + kl_divergence
         # print("LOSSES...")
         # print(bce_loss)

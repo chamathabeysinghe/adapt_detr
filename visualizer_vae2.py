@@ -1,3 +1,4 @@
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -5,27 +6,28 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 # import datasets
-import util.misc as utils
 from datasets import build_dataset
 # from datasets import build_dataset, get_coco_api_from_dataset
 from models_vae import build_model
-import cv2
+
 
 class Args:
-    dataset_file = 'ant2'
+    dataset_file = 'vae_ant'
     data_path = '/dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_dataset_small'
     masks = False
     batch_size = 1
     num_workers = 2
+    backbone='resnet50'
+    dilation=False
 
 
 args = Args()
 
 device = torch.device('cuda')
-model, criterion = build_model(None)
+model, criterion = build_model(args)
 model.to(device)
 
-checkpoint_path = '/dice1-data/home/cabe0006/cvpr_experiments/vae_output/basic_vae_on_ants/checkpoint.pth'
+checkpoint_path = '/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/checkpoint0024.pth'
 checkpoint = torch.load(checkpoint_path, map_location='cpu')
 model.load_state_dict(checkpoint['model'], strict=True)
 
@@ -34,7 +36,7 @@ sampler_test = torch.utils.data.RandomSampler(dataset_test)
 batch_sampler_test = torch.utils.data.BatchSampler(
     sampler_test, args.batch_size, drop_last=True)
 data_loader_test = DataLoader(dataset_test, batch_sampler=batch_sampler_test,
-                               collate_fn=utils.collate_fn, num_workers=args.num_workers)
+                                num_workers=args.num_workers)
 
 
 invTrans = transforms.Compose([ transforms.Normalize(mean = [ 0., 0., 0. ],
@@ -47,32 +49,29 @@ model.eval()
 with torch.no_grad():
     for idx, data in enumerate(iter(data_loader_test)):
         print(idx)
-        imgs = data[0].tensors
+        # imgs = data[0].tensors
         # imgs, _ = data
-        imgs = imgs.to(device)
+        imgs = data.to(device)
         out, mu, logVAR = model(imgs)
-
         inv_img = invTrans(imgs[0])
         img = np.transpose(inv_img.cpu().numpy(), [1,2,0])
-        show_img1 = np.squeeze(img)
-
         # plt.subplot(121)
-        # plt.imshow(np.squeeze(img))
+        show_img1 = np.squeeze(img)
+        # plt.imshow(show_img1)
 
         inv_out = invTrans(out[0])
         outimg = np.transpose(inv_out.cpu().numpy(), [1,2,0])
-        show_img2 = np.squeeze(outimg)
-
         # plt.subplot(122)
-        # plt.imshow(np.squeeze(outimg))
-        # # plt.savefig('foo.png')
-        # plt.show()
+        show_img2 = np.squeeze(outimg)
+        # plt.imshow(show_img2)
 
         vis = (np.concatenate((show_img1, show_img2), axis=1) * 255).astype(np.uint8)
         # plt.imshow(vis)
-        cv2.imwrite(
-            f'/dice1-data/home/cabe0006/cvpr_experiments/vae_output/basic_vae_on_ants/predictions_final/{idx}.png', vis)
-        if idx > 500:
+        cv2.imwrite(f'/dice1-data/home/cabe0006/cvpr_experiments/vae_output/resnet_vae_on_ants/predictions_24/{idx}.png', vis)
+
+        # plt.savefig('foo.png')
+        # plt.show()
+        if idx > 1000:
             break
 
 
