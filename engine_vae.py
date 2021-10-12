@@ -18,7 +18,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
 
-    for imgs in metric_logger.log_every(data_loader, print_freq, header):
+    for imgs, labels in metric_logger.log_every(data_loader, print_freq, header):
         imgs = imgs.to(device)
 
         # Feeding a batch of images into the network to obtain the output image, mu, and logVar
@@ -33,7 +33,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         # print(torch.mean(logVar))
         # The loss is the BCE loss combined with the KL divergence to ensure the distribution is learnt
         kl_divergence = torch.mean(0.5 * torch.sum(-1 - logVar + mu.pow(2) + logVar.exp(), dim=(1, 2, 3)), dim=0)
-        bce_loss = 0.001 * F.mse_loss(out, imgs, size_average=False)
+        bce_loss = F.mse_loss(out, imgs, size_average=False)
         loss = bce_loss + kl_divergence
         # print("LOSSES...")
         # print(bce_loss)

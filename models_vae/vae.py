@@ -52,9 +52,9 @@ class VAE(nn.Module):
     def decoder(self, z):
         # z is fed back into a fully-connected layers and then into two transpose convolutional layers
         # The generated output is the same size of the original input
-        x = F.relu(self.up1(z, output_size=(136, 256)))
-        x = F.relu(self.up2(x, output_size=(271, 512)))
-        x = torch.sigmoid(self.up3(x, output_size=(542, 1024)))
+        x = F.relu(self.up1(z, output_size=(8, 8)))
+        x = F.relu(self.up2(x, output_size=(16, 16)))
+        x = torch.tanh(self.up3(x, output_size=(32, 32)))
         return x
 
     def forward(self, x):

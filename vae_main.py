@@ -12,6 +12,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision import datasets, transforms
+import torch
+import torchvision
+import torchvision.transforms as transforms
 
 # import datasets
 import util.misc as utils
@@ -27,7 +30,7 @@ def get_args_parser():
     parser.add_argument('--backbone', default='resnet50')
     parser.add_argument('--dilation', default=False)
     # parser.add_argument('--lr_backbone', default=1e-4, type=float)
-    parser.add_argument('--batch_size', default=4, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=2000, type=int)
     parser.add_argument('--lr_drop', default=200, type=int)
@@ -79,12 +82,21 @@ def main(args):
                                   weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
-    dataset_train = build_dataset(image_set='train', args=args)
-    sampler_train = torch.utils.data.RandomSampler(dataset_train)
-    batch_sampler_train = torch.utils.data.BatchSampler(
-        sampler_train, args.batch_size, drop_last=True)
-    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
-                                   num_workers=args.num_workers)
+    # dataset_train = build_dataset(image_set='train', args=args)
+    # sampler_train = torch.utils.data.RandomSampler(dataset_train)
+    # batch_sampler_train = torch.utils.data.BatchSampler(
+    #     sampler_train, args.batch_size, drop_last=True)
+    # data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
+    #                                num_workers=args.num_workers)
+
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    trainset = torchvision.datasets.CIFAR10(root='/Users/cabe0006/Projects/monash/data/cifar', train=True,
+                                            download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
+                                              shuffle=True, num_workers=2)
 
     # train_loader = torch.utils.data.DataLoader(
     #     datasets.MNIST(args.data_path, train=True, download=True,
@@ -107,7 +119,7 @@ def main(args):
 
     for epoch in range(args.start_epoch, args.epochs):
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch
+            model, criterion, trainloader, optimizer, device, epoch
         )
         lr_scheduler.step()
         if args.output_dir:
