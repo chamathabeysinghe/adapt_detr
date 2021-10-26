@@ -132,9 +132,9 @@ def main(args):
     model.to(device)
     discriminator_model.to(device)
 
-    for n, p in model.named_parameters():
-        if "backbone" in n:
-            p.requires_grad_(False)
+    # for n, p in model.named_parameters():
+    #     if "backbone" in n:
+    #         p.requires_grad_(False)
         # if "encoder" in n:
         #     p.requires_grad_(False)
 

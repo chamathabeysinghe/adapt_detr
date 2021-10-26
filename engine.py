@@ -6,6 +6,7 @@ import math
 import os
 import sys
 from typing import Iterable
+import torch.nn.functional as F
 
 import torch
 
@@ -40,7 +41,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # Train discriminator
         # discriminator_optimizer.zero_grad()
-        outputs, _, _ = model(samples)
+        outputs, _, _, vq_loss, data_recon, perplexity = model(samples)
         # source_features = source_features[-1].tensors
         # _, _, target_features = model(samples_val, feature_only=True)
         # target_features = target_features[-1].tensors
@@ -66,9 +67,14 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-        total_loss = losses
+
+        data_variance = 0.03860449034941696
+        recon_error = F.mse_loss(data_recon, samples.tensors) / data_variance
+
+        total_loss = losses + recon_error + vq_loss
 
         # for logging purpose
+        vae_loss_dict = {'vq_loss': vq_loss, 'recon_error': recon_error, 'perplexity': perplexity}
         # gan_loss_dict = {'loss_generator': generator_loss,
         #                  'loss_discriminator_source': discriminator_loss_1,
         #                  'loss_discriminator_target': discriminator_loss_2,
@@ -76,9 +82,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         #                  'accuracy_discriminator_source': discriminator_accuracy_1,
         #                  'accuracy_discriminator_target': discriminator_accuracy_2,
         #                  }
-        # gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
-        # gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
-        #                               for k, v in gan_loss_dict_reduced.items()}
+        vae_loss_dict_reduced = utils.reduce_dict(vae_loss_dict)
+        vae_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
+                                      for k, v in vae_loss_dict_reduced.items()}
+        vae_loss_reduced_unscaled = sum(vae_loss_dict_reduced_unscaled.values())
         # gan_loss_dict_reduced_scaled = {k: v * weight_dict[k]
         #                             for k, v in gan_loss_dict_reduced.items() if k in weight_dict}
 
@@ -91,8 +98,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
         losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
 
-        loss_value = losses_reduced_scaled.item()
-        total_loss_value = loss_value
+        # loss_value = losses_reduced_scaled.item()
+        total_loss_value = losses_reduced_scaled.item() + vae_loss_reduced_unscaled.item()
 
         if not math.isfinite(total_loss_value):
             print("Loss is {}, stopping training".format(total_loss_value))
@@ -105,7 +112,11 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
 
-        metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
+        metric_logger.update(loss=total_loss_value,
+                             detr_loss=losses_reduced_scaled.item(),
+                             vae_loss=vae_loss_reduced_unscaled.item(),
+                             **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled,
+                             **vae_loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
         metric_logger.update(total_loss=total_loss_value)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])

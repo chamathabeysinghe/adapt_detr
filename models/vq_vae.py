@@ -49,6 +49,7 @@ class VectorQuantizer(nn.Module):
         # convert quantized from BHWC -> BCHW
         return loss, quantized.permute(0, 3, 1, 2).contiguous(), perplexity, encodings
 
+
 class VectorQuantizerEMA(nn.Module):
     def __init__(self, num_embeddings, embedding_dim, commitment_cost, decay, epsilon=1e-5):
         super(VectorQuantizerEMA, self).__init__()
@@ -157,13 +158,13 @@ class Encoder(nn.Module):
                                  kernel_size=4,
                                  stride=2, padding=1)
         self._conv_1_1 = nn.Conv2d(in_channels=num_hiddens // 2,
-                                 out_channels=num_hiddens // 2,
-                                 kernel_size=4,
-                                 stride=2, padding=1)
+                                   out_channels=num_hiddens // 2,
+                                   kernel_size=4,
+                                   stride=2, padding=1)
         self._conv_1_2 = nn.Conv2d(in_channels=num_hiddens // 2,
-                                 out_channels=num_hiddens // 2,
-                                 kernel_size=4,
-                                 stride=2, padding=1)
+                                   out_channels=num_hiddens // 2,
+                                   kernel_size=4,
+                                   stride=2, padding=1)
         self._conv_2 = nn.Conv2d(in_channels=num_hiddens // 2,
                                  out_channels=num_hiddens,
                                  kernel_size=4,
@@ -222,13 +223,13 @@ class Decoder(nn.Module):
                                                 kernel_size=4,
                                                 stride=2, padding=1)
         self._conv_trans_1_1 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
-                                                out_channels=num_hiddens // 2,
-                                                kernel_size=4,
-                                                stride=2, padding=1)
+                                                  out_channels=num_hiddens // 2,
+                                                  kernel_size=4,
+                                                  stride=2, padding=1)
         self._conv_trans_1_2 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
-                                                out_channels=num_hiddens // 2,
-                                                kernel_size=4,
-                                                stride=2, padding=1)
+                                                  out_channels=num_hiddens // 2,
+                                                  kernel_size=4,
+                                                  stride=2, padding=1)
         self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
                                                 out_channels=3,
                                                 kernel_size=4,
@@ -280,5 +281,18 @@ class VaeWithoutEncoder(nn.Module):
         loss, quantized, perplexity, _ = self._vq_vae(z)
         x_recon = self._decoder(quantized)
 
-        return loss, x_recon, perplexity, z, quantized
-#
+        return loss, x_recon, perplexity, quantized
+
+
+def build_vq_vae(args):   # TODO use args object to read parameters
+    num_hiddens = 128
+    num_residual_hiddens = 32
+    num_residual_layers = 2
+    embedding_dim = 64
+    num_embeddings = 512
+    commitment_cost = 0.25
+    decay = 0.99
+    vaeWithoutEncoder = VaeWithoutEncoder(num_hiddens, num_residual_layers, num_residual_hiddens,
+                                          num_embeddings, embedding_dim,
+                                          commitment_cost, decay)
+    return vaeWithoutEncoder

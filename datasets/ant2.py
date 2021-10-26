@@ -166,7 +166,7 @@ class ConvertAntPolysToMask(object):
 def get_train_transforms_albm():
     return A.Compose(
         [
-            A.RandomSizedCrop(min_max_height=(271, 542), height=542, width=1024, p=0.5),
+            A.RandomSizedCrop(min_max_height=(256, 512), height=512, width=1024, p=0.5),
             A.OneOf([
                 A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2,
                                      val_shift_limit=0.2, p=0.9),
@@ -176,7 +176,7 @@ def get_train_transforms_albm():
             A.ToGray(p=0.01),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
-            A.Resize(height=542, width=1024, p=1.0),
+            A.Resize(height=512, width=1024, p=1.0),
             A.Cutout(num_holes=8, max_h_size=64, max_w_size=64, fill_value=0, p=0.5),
             # ToTensorV2(p=1.0),
         ],
@@ -197,7 +197,7 @@ def get_train_transforms_torch_reduced():
     ])
 
     return T.Compose([
-        T.RandomResize([(1024, 542)], max_size=1333),
+        T.RandomResize([(1024, 512)], max_size=1333),
         normalize,
     ])
 
@@ -211,11 +211,11 @@ def get_train_transforms_torch():
     return T.Compose([
         T.RandomHorizontalFlip(),
         T.RandomSelect(
-            T.RandomResize([(1024, 542)], max_size=1333),
+            T.RandomResize([(1024, 512)], max_size=1333),
             T.Compose([
                 T.RandomResize([400, 500, 600]),
                 T.RandomSizeCrop(384, 600),
-                T.RandomResize([(1024, 542)], max_size=1333),
+                T.RandomResize([(1024, 512)], max_size=1333),
             ])
         ),
         normalize,
@@ -228,7 +228,7 @@ def get_val_transforms_torch():
         T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     return T.Compose([
-        T.RandomResize([(1024, 542)], max_size=1333),
+        T.RandomResize([(1024, 512)], max_size=1333),
         normalize,
     ])
 
@@ -238,7 +238,7 @@ def get_test_minified_transforms_torch():
         T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     return T.Compose([
-        T.RandomResize([(1024, 542)], max_size=1333),
+        T.RandomResize([(1024, 512)], max_size=1333),
         normalize,
         T.AddGaussianNoise(0., .05)
     ])
