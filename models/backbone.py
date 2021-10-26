@@ -10,7 +10,7 @@ import torchvision
 from torch import nn
 from torchvision.models._utils import IntermediateLayerGetter
 from typing import Dict, List
-
+from .vq_vae import Encoder
 from util.misc import NestedTensor, is_main_process
 
 from .position_encoding import build_position_encoding
@@ -110,10 +110,20 @@ class Joiner(nn.Sequential):
 
 
 def build_backbone(args):
+    num_hiddens = 128
+    num_residual_hiddens = 32
+    num_residual_layers = 2
+
     position_embedding = build_position_encoding(args)
     train_backbone = args.lr_backbone > 0
-    return_interm_layers = args.masks
-    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
+    backbone = Encoder(3, num_hiddens,
+                                num_residual_layers,
+                                num_residual_hiddens,
+                             )
+    if not train_backbone:
+        for name, parameter in backbone.named_parameters():
+            parameter.requires_grad(False)
+
     model = Joiner(backbone, position_embedding)
-    model.num_channels = backbone.num_channels
+    model.num_channels = num_hiddens
     return model
