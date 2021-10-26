@@ -15,6 +15,7 @@ import util.misc as utils
 from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch
 from models import build_model, build_discriminator
+from collections import OrderedDict
 
 
 def get_args_parser():
@@ -91,6 +92,7 @@ def get_args_parser():
                         help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--startpoint', default='', help='resume from checkpoint vqvae')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
@@ -130,11 +132,12 @@ def main(args):
     model.to(device)
     discriminator_model.to(device)
 
-    # for n,p in model.named_parameters():
-    #     if "backbone" in n:
-    #         p.requires_grad_(False)
+    for n, p in model.named_parameters():
+        if "backbone" in n:
+            p.requires_grad_(False)
         # if "encoder" in n:
         #     p.requires_grad_(False)
+
 
     model_without_ddp = model
     discriminator_model_without_ddp = discriminator_model
@@ -203,7 +206,18 @@ def main(args):
         discriminator_model_without_ddp.detr.load_state_dict(checkpoint['discriminator_model'])
 
     output_dir = Path(args.output_dir)
-    if args.resume:
+    if args.startpoint:
+        weight_dict = torch.load(args.startpoint, map_location=torch.device('cpu'))
+        weight_arr = []
+        for key in weight_dict['model'].keys():
+            if '_encoder' in key:
+                #         print(key)
+                #         print(key.replace('_encoder', 'backbone.0'))
+                weight_arr.append((key.replace('_encoder', 'backbone.0'), weight_dict['model'][key]))
+        new_weight_dict = OrderedDict(weight_arr)
+        model_without_ddp.load_state_dict(new_weight_dict, strict=False)
+
+    if not args.startpoint and args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
@@ -232,9 +246,7 @@ def main(args):
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(
-            model, criterion, discriminator_model, discriminator_criterion,
-            postprocessors, data_loader_val, base_ds, device, args.output_dir,
-            args.batch_size
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
         )
         if args.output_dir:
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
@@ -246,9 +258,7 @@ def main(args):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, discriminator_model, discriminator_criterion, data_loader_train, data_loader_test_iter,
-            optimizer, discriminator_optimizer, device, epoch,
-            args.gan_loss_coef,
+            model, criterion, data_loader_train, optimizer, device, epoch,
             args.batch_size,
             args.clip_max_norm)
         lr_scheduler.step()
@@ -270,9 +280,8 @@ def main(args):
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, discriminator_model, discriminator_criterion,
+            model, criterion,
             postprocessors, data_loader_test, base_ds, device, args.output_dir,
-            args.batch_size
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},

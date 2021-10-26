@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from util.misc import NestedTensor
+from typing import Dict
 
 
 class VectorQuantizer(nn.Module):
@@ -175,8 +177,9 @@ class Encoder(nn.Module):
                                              num_residual_layers=num_residual_layers,
                                              num_residual_hiddens=num_residual_hiddens)
 
-    def forward(self, inputs):
-        x = self._conv_1(inputs)
+    def forward(self, tensor_list: NestedTensor):
+        x = tensor_list.tensors
+        x = self._conv_1(x)
         x = F.relu(x)
 
         x = self._conv_1_1(x)
@@ -189,7 +192,15 @@ class Encoder(nn.Module):
         x = F.relu(x)
 
         x = self._conv_3(x)
-        return self._residual_stack(x)
+        x = self._residual_stack(x)
+
+        m = tensor_list.mask
+        assert m is not None
+        mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
+
+        out: Dict[str, NestedTensor] = {}
+        out['0'] = NestedTensor(x, mask)
+        return out
 
 
 class Decoder(nn.Module):

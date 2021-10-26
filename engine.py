@@ -16,21 +16,12 @@ from models.backbone import FrozenBatchNorm2d
 from util.misc import accuracy_discriminator
 import numpy as np
 
-def deactivate_batchnorm(m):
-    if isinstance(m, FrozenBatchNorm2d):
-        m.eval()
-
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
-                    discriminator_model: torch.nn.Module, discriminator_criterion: torch.nn.Module,
-                    data_loader: Iterable, data_loader_val_iter,
-                    optimizer: torch.optim.Optimizer, discriminator_optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, gan_loss_coef: float, batch_size: int, max_norm: float = 0):
+                    data_loader: Iterable, optimizer: torch.optim.Optimizer, device: torch.device, epoch: int,
+                    batch_size: int, max_norm: float = 0):
     model.train()
-    model.apply(deactivate_batchnorm)
-    discriminator_model.train()
     criterion.train()
-    discriminator_criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
@@ -125,7 +116,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, discriminator_model, discriminator_criterion, postprocessors, data_loader, base_ds, device, output_dir, batch_size):
+def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
     model.eval()
     criterion.eval()
 
@@ -148,27 +139,10 @@ def evaluate(model, criterion, discriminator_model, discriminator_criterion, pos
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        N = batch_size
-        true_labels = torch.ones(N).to(device)
-        fake_labels = torch.zeros(N).to(device)
-
-        outputs, _, target_features = model(samples)
-        target_features = target_features[-1].tensors
-        discriminator_output_target_new = discriminator_model(target_features).view(-1)
-        generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
-        discriminator_loss = discriminator_criterion(discriminator_output_target_new, fake_labels)
+        outputs, _, _ = model(samples)
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
-
-        # for logging purpose
-        gan_loss_dict = {'loss_generator': generator_loss, 'loss_discriminator': discriminator_loss}
-        gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
-        gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
-                                          for k, v in gan_loss_dict_reduced.items()}
-        gan_loss_dict_reduced_scaled = {k: v * weight_dict[k]
-                                        for k, v in gan_loss_dict_reduced.items() if k in weight_dict}
-
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
@@ -176,14 +150,12 @@ def evaluate(model, criterion, discriminator_model, discriminator_criterion, pos
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
         losses = sum(loss_dict_reduced_scaled.values())
-        total_loss_value = losses + gan_loss_dict_reduced_scaled['loss_generator']
+        total_loss_value = losses
 
         metric_logger.update(loss=losses,
                              total_loss=total_loss_value,
                              **loss_dict_reduced_scaled,
-                             **loss_dict_reduced_unscaled,
-                             **gan_loss_dict_reduced_scaled,
-                             **gan_loss_dict_reduced_unscaled)
+                             **loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
 
         orig_target_sizes = torch.stack([t["orig_size"] for t in targets], dim=0)

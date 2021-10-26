@@ -193,7 +193,7 @@ def get_train_transforms_albm():
 def get_train_transforms_torch_reduced():
     normalize = T.Compose([
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
 
     return T.Compose([
@@ -205,10 +205,8 @@ def get_train_transforms_torch_reduced():
 def get_train_transforms_torch():
     normalize = T.Compose([
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
-
-    scales = [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
 
     return T.Compose([
         T.RandomHorizontalFlip(),
@@ -227,7 +225,7 @@ def get_train_transforms_torch():
 def get_val_transforms_torch():
     normalize = T.Compose([
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     return T.Compose([
         T.RandomResize([(1024, 542)], max_size=1333),
@@ -237,7 +235,7 @@ def get_val_transforms_torch():
 def get_test_minified_transforms_torch():
     normalize = T.Compose([
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
     return T.Compose([
         T.RandomResize([(1024, 542)], max_size=1333),
