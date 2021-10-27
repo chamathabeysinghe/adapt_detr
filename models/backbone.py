@@ -98,15 +98,15 @@ class Joiner(nn.Sequential):
         super().__init__(backbone, projector, position_embedding)
 
     def forward(self, tensor_list: NestedTensor):
-        xs = self[0](tensor_list)
-        xs = self[1](xs)
+        xs_enc = self[0](tensor_list)
+        xs = self[1](xs_enc)
         out: List[NestedTensor] = []
         pos = []
         for name, x in xs.items():
             out.append(x)
             # position encoding
             pos.append(self[2](x).to(x.tensors.dtype))
-        return out, pos
+        return out, pos, xs_enc
 
 
 class FeatureProjector(nn.Module):

@@ -59,10 +59,11 @@ class DETR(nn.Module):
         """
         if isinstance(samples, (list, torch.Tensor)):
             samples = nested_tensor_from_tensor_list(samples)
-        features, pos = self.backbone(samples)
+        features, pos, encoder_out = self.backbone(samples)
+        src_enc, _ = encoder_out.decompose()
         src, mask = features[-1].decompose()
 
-        vq_loss, data_recon, perplexity, _ = self.vq_vae(src)
+        vq_loss, data_recon, perplexity, _ = self.vq_vae(src_enc)
 
         if recon_only:
             return None, None, features, vq_loss, data_recon, perplexity
