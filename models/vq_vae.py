@@ -156,14 +156,6 @@ class Encoder(nn.Module):
                                  out_channels=num_hiddens // 2,
                                  kernel_size=4,
                                  stride=2, padding=1)
-        self._conv_1_1 = nn.Conv2d(in_channels=num_hiddens // 2,
-                                 out_channels=num_hiddens // 2,
-                                 kernel_size=4,
-                                 stride=2, padding=1)
-        self._conv_1_2 = nn.Conv2d(in_channels=num_hiddens // 2,
-                                 out_channels=num_hiddens // 2,
-                                 kernel_size=4,
-                                 stride=2, padding=1)
         self._conv_2 = nn.Conv2d(in_channels=num_hiddens // 2,
                                  out_channels=num_hiddens,
                                  kernel_size=4,
@@ -182,12 +174,6 @@ class Encoder(nn.Module):
         x = self._conv_1(x)
         x = F.relu(x)
 
-        x = self._conv_1_1(x)
-        x = F.relu(x)
-
-        x = self._conv_1_2(x)
-        x = F.relu(x)
-
         x = self._conv_2(x)
         x = F.relu(x)
 
@@ -195,12 +181,8 @@ class Encoder(nn.Module):
         x = self._residual_stack(x)
 
         m = tensor_list.mask
-        assert m is not None
-        mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
 
-        out: Dict[str, NestedTensor] = {}
-        out['0'] = NestedTensor(x, mask)
-        return out
+        return NestedTensor(x, m)
 
 
 class Decoder(nn.Module):
@@ -221,14 +203,6 @@ class Decoder(nn.Module):
                                                 out_channels=num_hiddens // 2,
                                                 kernel_size=4,
                                                 stride=2, padding=1)
-        self._conv_trans_1_1 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
-                                                out_channels=num_hiddens // 2,
-                                                kernel_size=4,
-                                                stride=2, padding=1)
-        self._conv_trans_1_2 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
-                                                out_channels=num_hiddens // 2,
-                                                kernel_size=4,
-                                                stride=2, padding=1)
         self._conv_trans_2 = nn.ConvTranspose2d(in_channels=num_hiddens // 2,
                                                 out_channels=3,
                                                 kernel_size=4,
@@ -240,12 +214,6 @@ class Decoder(nn.Module):
         x = self._residual_stack(x)
 
         x = self._conv_trans_1(x)
-        x = F.relu(x)
-
-        x = self._conv_trans_1_1(x)
-        x = F.relu(x)
-
-        x = self._conv_trans_1_2(x)
         x = F.relu(x)
 
         return self._conv_trans_2(x)
