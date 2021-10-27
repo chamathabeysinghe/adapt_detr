@@ -150,7 +150,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
     for samples, targets in metric_logger.log_every(data_loader, 10, header):
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        outputs, _, _ = model(samples)
+        outputs, _, _, _, _, _ = model(samples)
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
