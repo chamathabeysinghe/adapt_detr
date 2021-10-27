@@ -94,25 +94,55 @@ class Backbone(BackboneBase):
 
 
 class Joiner(nn.Sequential):
-    def __init__(self, backbone, position_embedding):
-        super().__init__(backbone, position_embedding)
+    def __init__(self, backbone, projector, position_embedding):
+        super().__init__(backbone, projector, position_embedding)
 
     def forward(self, tensor_list: NestedTensor):
         xs = self[0](tensor_list)
+        xs = self[1](xs)
         out: List[NestedTensor] = []
         pos = []
         for name, x in xs.items():
             out.append(x)
             # position encoding
-            pos.append(self[1](x).to(x.tensors.dtype))
-
+            pos.append(self[2](x).to(x.tensors.dtype))
         return out, pos
+
+
+class FeatureProjector(nn.Module):
+    def __init__(self, num_hiddens, out_channels):
+        super(FeatureProjector, self).__init__()
+        self._conv_1_1 = nn.Conv2d(in_channels=num_hiddens,
+                                 out_channels=out_channels // 2,
+                                 kernel_size=4,
+                                 stride=2, padding=1)
+        self._conv_1_2 = nn.Conv2d(in_channels=out_channels // 2,
+                                 out_channels=out_channels,
+                                 kernel_size=4,
+                                 stride=2, padding=1)
+
+    def forward(self, tensor_list: NestedTensor):
+        x = tensor_list.tensors
+        x = self._conv_1_1(x)
+        x = F.relu(x)
+
+        x = self._conv_1_2(x)
+        x = F.relu(x)
+
+        m = tensor_list.mask
+        assert m is not None
+        mask = F.interpolate(m[None].float(), size=x.shape[-2:]).to(torch.bool)[0]
+
+        out: Dict[str, NestedTensor] = {}
+        out['0'] = NestedTensor(x, mask)
+        return out
 
 
 def build_backbone(args):
     num_hiddens = 128
     num_residual_hiddens = 32
     num_residual_layers = 2
+    out_channels = 2048
 
     position_embedding = build_position_encoding(args)
     train_backbone = args.lr_backbone > 0
@@ -120,10 +150,11 @@ def build_backbone(args):
                                 num_residual_layers,
                                 num_residual_hiddens,
                              )
+    projector = FeatureProjector(num_hiddens, out_channels)
     if not train_backbone:
         for name, parameter in backbone.named_parameters():
             parameter.requires_grad(False)
 
-    model = Joiner(backbone, position_embedding)
-    model.num_channels = num_hiddens
+    model = Joiner(backbone, projector, position_embedding)
+    model.num_channels = out_channels
     return model
