@@ -113,7 +113,7 @@ def get_args_parser():
                         help="Relative classification weight of the no-object class")
 
     # dataset parameters
-    parser.add_argument('--dataset_file', default='face')
+    parser.add_argument('--dataset_file', default='ant2')
     parser.add_argument('--data_path', type=str)
     parser.add_argument('--data_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
@@ -130,9 +130,25 @@ def get_args_parser():
     return parser
 
 
+def save(img1, img2, path):
+    import torchvision.transforms as transforms
+    invTrans = transforms.Compose([transforms.Normalize(mean=[-0.5, -0.5, -0.5],
+                                                        std=[1., 1., 1.])
+                                   ])
+    img1 = invTrans(img1)
+    img2 = invTrans(img2)
+
+    npimg1 = img1.detach().cpu().numpy()
+    npimg1 = (np.transpose(npimg1, (1, 2, 0)) * 255).astype(np.uint8)
+
+    npimg2 = img2.detach().cpu().numpy()
+    npimg2 = (np.transpose(npimg2, (1, 2, 0)) * 255).astype(np.uint8)
+    vis = np.concatenate((npimg1, npimg2), axis=1).astype(np.uint8)
+    cv2.imwrite(path, vis)
+
 @torch.no_grad()
 def infer(images_path, model, postprocessors, device, output_path):
-    model.eval()
+    # model.train()
     duration = 0
     results_data = []
     for img_sample in images_path:
@@ -168,7 +184,7 @@ def infer(images_path, model, postprocessors, device, output_path):
         ]
 
         start_t = time.perf_counter()
-        outputs, _, _ = model(image)
+        outputs, _, _, _, data_recon, _ = model(image)
         end_t = time.perf_counter()
 
         outputs["pred_logits"] = outputs["pred_logits"].cpu()
@@ -215,6 +231,8 @@ def infer(images_path, model, postprocessors, device, output_path):
         # img = cv2.resize(img, (int(2048/1.5), int(1084/1.5)))
         # cv2.imshow("img", img)
         # cv2.waitKey()
+        img_save_path2 = os.path.join(output_path.replace('predictions', 'predictions_reconstructions'), filename)
+        save(image[0], data_recon[0], img_save_path2)
         infer_time = end_t - start_t
         duration += infer_time
         print("Processing...{} ({:.3f}s)".format(filename, infer_time))
