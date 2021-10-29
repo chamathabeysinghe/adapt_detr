@@ -257,16 +257,20 @@ def main(args):
                     'epoch': epoch,
                     'args': args,
                 }, checkpoint_path)
+        if epoch % 50 == 0:
+            test_stats, coco_evaluator = evaluate(
+                model, criterion,
+                postprocessors, data_loader_val, base_ds, device, args.output_dir,
+            )
 
-        test_stats, coco_evaluator = evaluate(
-            model, criterion,
-            postprocessors, data_loader_val, base_ds, device, args.output_dir,
-        )
-
-        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
-                     'epoch': epoch,
-                     'n_parameters': n_parameters}
+            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                         **{f'test_{k}': v for k, v in test_stats.items()},
+                         'epoch': epoch,
+                         'n_parameters': n_parameters}
+        else:
+            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                         'epoch': epoch,
+                         'n_parameters': n_parameters}
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:

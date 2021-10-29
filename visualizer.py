@@ -113,7 +113,7 @@ def get_args_parser():
                         help="Relative classification weight of the no-object class")
 
     # dataset parameters
-    parser.add_argument('--dataset_file', default='face')
+    parser.add_argument('--dataset_file', default='ant2')
     parser.add_argument('--data_path', type=str)
     parser.add_argument('--data_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
@@ -132,7 +132,8 @@ def get_args_parser():
 
 @torch.no_grad()
 def infer(images_path, model, postprocessors, device, output_path):
-    model.eval()
+    # model.train()
+    model.train()
     duration = 0
     results_data = []
     for img_sample in images_path:
