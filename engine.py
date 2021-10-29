@@ -20,7 +20,7 @@ import numpy as np
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer, device: torch.device, epoch: int,
-                    batch_size: int, max_norm: float = 0):
+                    batch_size: int, target_img_iter, max_norm: float = 0):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -31,6 +31,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
+        val_samples, _ = next(target_img_iter).to(device)
         # samples_val, targets_val = next(data_loader_val_iter)  # TODO Create new data generator
         # samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -42,6 +43,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         # Train discriminator
         # discriminator_optimizer.zero_grad()
         outputs, _, _, vq_loss, data_recon, perplexity = model(samples)
+        _, _, _, vq_loss_2, data_recon_2, perplexity_2 = model(val_samples)
+
+
         # source_features = source_features[-1].tensors
         # _, _, target_features = model(samples_val, feature_only=True)
         # target_features = target_features[-1].tensors
@@ -70,11 +74,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         data_variance = 0.03860449034941696
         recon_error = F.mse_loss(data_recon, samples.tensors) / data_variance
-
-        total_loss = losses + recon_error + vq_loss
+        recon_error_2 = F.mse_loss(data_recon_2, val_samples.tensors) / data_variance
+        total_loss = losses + recon_error + recon_error_2 + vq_loss + vq_loss_2
 
         # for logging purpose
-        vae_loss_dict = {'vq_loss': vq_loss, 'recon_error': recon_error, 'perplexity': perplexity}
+        vae_loss_dict = {'vq_loss': vq_loss+vq_loss_2,
+                         'recon_error': recon_error + recon_error_2,
+                         'perplexity': (perplexity + perplexity_2)/2}
         # gan_loss_dict = {'loss_generator': generator_loss,
         #                  'loss_discriminator_source': discriminator_loss_1,
         #                  'loss_discriminator_target': discriminator_loss_2,

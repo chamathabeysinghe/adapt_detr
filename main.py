@@ -17,6 +17,11 @@ from engine import evaluate, train_one_epoch
 from models import build_model
 from collections import OrderedDict
 
+def cycle(iterable):
+    while True:
+        for x in iterable:
+            yield x
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
@@ -235,12 +240,14 @@ def main(args):
 
     print("Start training")
     start_time = time.time()
+    target_img_iter = iter(cycle(data_loader_val))
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer, device, epoch,
             args.batch_size,
+            target_img_iter,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
