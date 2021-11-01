@@ -268,6 +268,7 @@ def main(args):
                          'epoch': epoch,
                          'n_parameters': n_parameters}
         else:
+            coco_evaluator = None
             log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                          'epoch': epoch,
                          'n_parameters': n_parameters}
