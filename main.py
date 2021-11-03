@@ -257,7 +257,7 @@ def main(args):
                     'epoch': epoch,
                     'args': args,
                 }, checkpoint_path)
-        if epoch % 50 == 0:
+        if epoch % 1 == 0:
             test_stats, coco_evaluator = evaluate(
                 model, criterion,
                 postprocessors, data_loader_val, base_ds, device, args.output_dir,

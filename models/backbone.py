@@ -124,10 +124,10 @@ class FeatureProjector(nn.Module):
     def forward(self, tensor_list: NestedTensor):
         x = tensor_list.tensors
         x = self._conv_1_1(x)
-        x = F.relu(x)
+        # x = F.relu(x)
 
         x = self._conv_1_2(x)
-        x = F.relu(x)
+        # x = F.relu(x)
 
         m = tensor_list.mask
         assert m is not None
@@ -142,7 +142,7 @@ def build_backbone(args):
     num_hiddens = 128
     num_residual_hiddens = 32
     num_residual_layers = 2
-    out_channels = 2048
+    out_channels = 256
 
     position_embedding = build_position_encoding(args)
     train_backbone = args.lr_backbone > 0

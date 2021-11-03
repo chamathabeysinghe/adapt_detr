@@ -258,5 +258,5 @@ def build(image_set, args):
     }
 
     img_folder, ann_file = PATHS[image_set]
-    dataset = AntDetection(img_folder, ann_file, return_masks=args.masks, image_set=image_set)
+    dataset = AntDetection(img_folder, ann_file, return_masks=args.masks, image_set='val')
     return dataset
