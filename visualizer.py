@@ -133,7 +133,7 @@ def get_args_parser():
 @torch.no_grad()
 def infer(images_path, model, postprocessors, device, output_path):
     # model.train()
-    model.train()
+    model.eval()
     duration = 0
     results_data = []
     for img_sample in images_path:

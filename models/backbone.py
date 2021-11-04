@@ -117,9 +117,13 @@ class FeatureProjector(nn.Module):
                                  kernel_size=4,
                                  stride=2, padding=1)
         self._conv_1_2 = nn.Conv2d(in_channels=out_channels // 2,
-                                 out_channels=out_channels,
+                                 out_channels=out_channels // 2,
                                  kernel_size=4,
                                  stride=2, padding=1)
+        self._conv_1_3 = nn.Conv2d(in_channels=out_channels // 2,
+                                   out_channels=out_channels,
+                                   kernel_size=4,
+                                   stride=2, padding=1)
 
     def forward(self, tensor_list: NestedTensor):
         x = tensor_list.tensors
@@ -127,6 +131,9 @@ class FeatureProjector(nn.Module):
         # x = F.relu(x)
 
         x = self._conv_1_2(x)
+        # x = F.relu(x)
+
+        x = self._conv_1_3(x)
         # x = F.relu(x)
 
         m = tensor_list.mask
