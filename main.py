@@ -72,7 +72,6 @@ def get_args_parser():
     parser.add_argument('--set_cost_giou', default=2, type=float,
                         help="giou box coefficient in the matching cost")
     # * Loss coefficients
-    parser.add_argument('--gan_loss_coef', default=1, type=float)
     parser.add_argument('--mask_loss_coef', default=1, type=float)
     parser.add_argument('--dice_loss_coef', default=1, type=float)
     parser.add_argument('--bbox_loss_coef', default=5, type=float)
@@ -105,12 +104,6 @@ def get_args_parser():
     return parser
 
 
-def cycle(iterable):
-    while True:
-        for x in iterable:
-            yield x
-
-
 def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
@@ -136,13 +129,10 @@ def main(args):
         # if "encoder" in n:
         #     p.requires_grad_(False)
 
-
     model_without_ddp = model
-
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
-
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
 
@@ -153,33 +143,25 @@ def main(args):
             "lr": args.lr_backbone,
         },
     ]
-
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     dataset_train = build_dataset(image_set='train', args=args)
-    dataset_test = build_dataset(image_set='test_minified', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
 
     if args.distributed:
         sampler_train = DistributedSampler(dataset_train)
-        sampler_test = DistributedSampler(dataset_test)
         sampler_val = DistributedSampler(dataset_val, shuffle=False)
     else:
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
-        sampler_test = torch.utils.data.RandomSampler(dataset_test)
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
 
     batch_sampler_train = torch.utils.data.BatchSampler(
         sampler_train, args.batch_size, drop_last=True)
-    batch_sampler_test = torch.utils.data.BatchSampler(
-        sampler_test, args.batch_size, drop_last=True)
 
     data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    # data_loader_test = DataLoader(dataset_test, batch_sampler=batch_sampler_test,
-    #                               collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
 
@@ -215,9 +197,9 @@ def main(args):
         # del checkpoint['model']['class_embed.weight']
         # del checkpoint['model']['class_embed.bias']
         # del checkpoint['model']['query_embed.weight']
-        del checkpoint['optimizer']
-        del checkpoint['lr_scheduler']
-        del checkpoint['args']
+        # del checkpoint['optimizer']
+        # del checkpoint['lr_scheduler']
+        # del checkpoint['args']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])

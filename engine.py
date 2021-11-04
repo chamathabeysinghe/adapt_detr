@@ -12,9 +12,6 @@ import torch
 import util.misc as utils
 from datasets.coco_eval import CocoEvaluator
 from datasets.panoptic_eval import PanopticEvaluator
-from models.backbone import FrozenBatchNorm2d
-from util.misc import accuracy_discriminator
-import numpy as np
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
@@ -30,58 +27,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
         samples = samples.to(device)
-        # samples_val, targets_val = next(data_loader_val_iter)  # TODO Create new data generator
-        # samples_val = samples_val.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        N = batch_size
-        # true_labels = torch.tensor(np.random.uniform(low=0.7, high=1.0, size=(N,))).float().to(device)
-        # fake_labels = torch.tensor(np.random.uniform(low=0.0, high=0.3, size=(N,))).float().to(device)
 
-
-        # Train discriminator
-        # discriminator_optimizer.zero_grad()
         outputs, _, _ = model(samples)
-        # source_features = source_features[-1].tensors
-        # _, _, target_features = model(samples_val, feature_only=True)
-        # target_features = target_features[-1].tensors
-        # discriminator_output_source = discriminator_model(source_features.detach()).view(-1)
-        # discriminator_loss_1 = gan_loss_coef * discriminator_criterion(discriminator_output_source, true_labels)
-        # discriminator_accuracy_1 = accuracy_discriminator(discriminator_output_source, true_labels)
-        # discriminator_loss_1.backward()
-
-        # discriminator_output_target = discriminator_model(target_features.detach()).view(-1)
-        # discriminator_loss_2 = gan_loss_coef * discriminator_criterion(discriminator_output_target, fake_labels)
-        # discriminator_accuracy_2 = accuracy_discriminator(discriminator_output_target, fake_labels)
-        #
-        # discriminator_loss_2.backward()
-        # if max_norm > 0:
-        #     torch.nn.utils.clip_grad_norm_(discriminator_model.parameters(), max_norm)
-        # discriminator_optimizer.step()
-
-        # Train Generator + Transformer
-        # discriminator_output_target_new = discriminator_model(target_features).view(-1)
-        # generator_loss = discriminator_criterion(discriminator_output_target_new, true_labels)
-        # generator_accuracy = accuracy_discriminator(discriminator_output_target_new, true_labels)
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
-        total_loss = losses
-
-        # for logging purpose
-        # gan_loss_dict = {'loss_generator': generator_loss,
-        #                  'loss_discriminator_source': discriminator_loss_1,
-        #                  'loss_discriminator_target': discriminator_loss_2,
-        #                  'accuracy_generator': generator_accuracy,
-        #                  'accuracy_discriminator_source': discriminator_accuracy_1,
-        #                  'accuracy_discriminator_target': discriminator_accuracy_2,
-        #                  }
-        # gan_loss_dict_reduced = utils.reduce_dict(gan_loss_dict)
-        # gan_loss_dict_reduced_unscaled = {f'{k}_unscaled': v
-        #                               for k, v in gan_loss_dict_reduced.items()}
-        # gan_loss_dict_reduced_scaled = {k: v * weight_dict[k]
-        #                             for k, v in gan_loss_dict_reduced.items() if k in weight_dict}
-
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -100,7 +52,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             sys.exit(1)
 
         optimizer.zero_grad()
-        total_loss.backward()
+        losses.backward()
         if max_norm > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
@@ -143,17 +95,14 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
 
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
+
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
-        losses = sum(loss_dict_reduced_scaled.values())
-        total_loss_value = losses
-
-        metric_logger.update(loss=losses,
-                             total_loss=total_loss_value,
+        metric_logger.update(loss=sum(loss_dict_reduced_scaled.values()),
                              **loss_dict_reduced_scaled,
                              **loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])

@@ -116,7 +116,7 @@ def make_Ant_transforms(image_set):
 
     normalize = T.Compose([
         T.ToTensor(),
-        T.Normalize([0.5, 0.5, 0.5], [1.0, 1.0, 1.0])
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     if image_set == 'val':
