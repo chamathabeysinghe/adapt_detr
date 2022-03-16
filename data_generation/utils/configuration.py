@@ -1,4 +1,4 @@
-DATASET_DIR = '/home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data'
+DATASET_DIR = '/dice1-data/home/cabe0006/cvpr_experiments/cvpr_data'
 # DATASET_DIR = '/Users/cabe0006/Projects/monash/cvpr_data'
 VIDEO_CLIPS = {
     'train': ["OU10B3L2In_0", "OU10B1L1Out_0", "OU10B3L3In_0", "OU10B2L2In_0", "OU10B2L3Out_0", "OU10B2L2Out_0",

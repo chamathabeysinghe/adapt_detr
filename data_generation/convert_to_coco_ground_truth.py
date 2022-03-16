@@ -8,7 +8,8 @@ import cv2
 
 
 SCALE = 4.0
-split = 'test'
+DATASET_NAME = 'detection_source_dataset'
+split = 'train'
 file_names = VIDEO_CLIPS[split]
 json_obj = {
     "categories": [
@@ -22,13 +23,14 @@ json_obj = {
 }
 image_count = 0
 detection_count = 0
-COCO_DIR = '/Users/cabe0006/Projects/monash/cvpr_experiments/nature_journal_publication/predictions_rcnn_test_5/coco_format'
+COCO_DIR = os.path.join(DATASET_DIR, DATASET_NAME)
+os.makedirs(COCO_DIR, exist_ok=True)
 
 for file in file_names:
     df = pd.read_csv(os.path.join(DATASET_DIR, 'raw_data', 'csv', f'{file}.csv'))
     num_frames = max(df.image_id.unique()) + 1
     frames = get_frames(os.path.join(DATASET_DIR, 'raw_data', 'videos', f'{file}.mp4'), max=num_frames)
-    image_dir = os.path.join(DATASET_DIR, 'detection_dataset_nature', split)
+    image_dir = os.path.join(DATASET_DIR, DATASET_NAME, split)
     os.makedirs(image_dir, exist_ok=True)
     for image_id in range(num_frames):
         image_count += 1
