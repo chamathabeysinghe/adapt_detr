@@ -1,5 +1,5 @@
 from utils.configuration import DATASET_DIR
-from utils.configuration import VIDEO_CLIPS
+from utils.configuration import VIDEO_CLIPS, VIDEO_CLIPS_TARGET
 from utils.video_tools import get_frames
 import pandas as pd
 import json
@@ -8,9 +8,13 @@ import cv2
 
 
 SCALE = 4.0
-DATASET_NAME = 'detection_source_dataset'
-split = 'train'
-file_names = VIDEO_CLIPS[split]
+DATASET_NAME = 'detection_target_dataset'
+split = 'val'
+file_names = []
+if DATASET_NAME == 'detection_target_dataset':
+    file_names = VIDEO_CLIPS_TARGET[split]
+elif DATASET_NAME == 'detection_source_dataset':
+    file_names = VIDEO_CLIPS[split]
 json_obj = {
     "categories": [
         {

@@ -145,30 +145,49 @@ def main(args):
                                   weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
-    dataset_train = build_dataset(image_set='train', args=args)
-    dataset_val = build_dataset(image_set='val', args=args)
+    dataset_train_source = build_dataset(image_set='train', args=args)
+    dataset_val_source = build_dataset(image_set='val', args=args)
+
+    dataset_train_target = build_dataset(image_set='train_target', args=args)
+    dataset_val_target = build_dataset(image_set='val_target', args=args)
 
     if args.distributed:
-        sampler_train = DistributedSampler(dataset_train)
-        sampler_val = DistributedSampler(dataset_val, shuffle=False)
+        sampler_train_source = DistributedSampler(dataset_train_source)
+        sampler_val_source = DistributedSampler(dataset_val_source, shuffle=False)
+
+        sampler_train_target = DistributedSampler(dataset_train_target)
+        sampler_val_target = DistributedSampler(dataset_val_target, shuffle=False)
+
     else:
-        sampler_train = torch.utils.data.RandomSampler(dataset_train)
-        sampler_val = torch.utils.data.SequentialSampler(dataset_val)
+        sampler_train_source = torch.utils.data.RandomSampler(dataset_train_source)
+        sampler_val_source = torch.utils.data.SequentialSampler(dataset_val_source)
 
-    batch_sampler_train = torch.utils.data.BatchSampler(
-        sampler_train, args.batch_size, drop_last=True)
+        sampler_train_target = torch.utils.data.RandomSampler(dataset_train_target)
+        sampler_val_target = torch.utils.data.SequentialSampler(dataset_val_target)
 
-    data_loader_train = DataLoader(dataset_train, batch_sampler=batch_sampler_train,
+    batch_sampler_train_source = torch.utils.data.BatchSampler(
+        sampler_train_source, args.batch_size, drop_last=True)
+
+    data_loader_train_source = DataLoader(dataset_train_source, batch_sampler=batch_sampler_train_source,
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers)
-    data_loader_val = DataLoader(dataset_val, args.batch_size, sampler=sampler_val,
+    data_loader_val_source = DataLoader(dataset_val_source, args.batch_size, sampler=sampler_val_source,
+                                 drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
+
+    batch_sampler_train_target = torch.utils.data.BatchSampler(
+        sampler_train_target, args.batch_size, drop_last=True)
+
+    data_loader_train_target = DataLoader(dataset_train_target, batch_sampler=batch_sampler_train_target,
+                                   collate_fn=utils.collate_fn, num_workers=args.num_workers)
+    data_loader_val_target = DataLoader(dataset_val_target, args.batch_size, sampler=sampler_val_target,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
 
     if args.dataset_file == "coco_panoptic":
         # We also evaluate AP during panoptic training, on original coco DS
         coco_val = datasets.coco.build("val", args)
-        base_ds = get_coco_api_from_dataset(coco_val)
+        base_ds_source = get_coco_api_from_dataset(coco_val)
     else:
-        base_ds = get_coco_api_from_dataset(dataset_val)
+        base_ds_source = get_coco_api_from_dataset(dataset_val_source)
+        base_ds_target = get_coco_api_from_dataset(dataset_val_target)
 
     if args.frozen_weights is not None:
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
@@ -191,19 +210,23 @@ def main(args):
             args.start_epoch = checkpoint['epoch'] + 1
 
     if args.eval:
-        test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir)
+        test_stats_source, coco_evaluator_source = evaluate(model, criterion, postprocessors,
+                                              data_loader_val_source, base_ds_source, device, args.output_dir)
+        test_stats_target, coco_evaluator_target = evaluate(model, criterion, postprocessors,
+                                              data_loader_val_source, base_ds_target, device, args.output_dir)
         if args.output_dir:
-            utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
+            utils.save_on_master(coco_evaluator_source.coco_eval["bbox"].eval, output_dir / "eval.pth")
+            utils.save_on_master(coco_evaluator_target.coco_eval["bbox"].eval, output_dir / "eval_target.pth")
         return
 
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
-            sampler_train.set_epoch(epoch)
+            sampler_train_source.set_epoch(epoch)
+            sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch,
+            model, criterion, data_loader_train_source, data_loader_train_target, optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
@@ -221,11 +244,15 @@ def main(args):
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
+            model, criterion, postprocessors, data_loader_val_source, base_ds_source, device, args.output_dir
+        )
+        test_stats_target, coco_evaluator_target = evaluate(
+            model, criterion, postprocessors, data_loader_val_target, base_ds_target, device, args.output_dir
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
+                     **{f'test_target_{k}': v for k, v in test_stats_target.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
 

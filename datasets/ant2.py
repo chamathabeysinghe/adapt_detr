@@ -227,12 +227,19 @@ def get_val_transforms_torch():
 
 
 def build(image_set, args):
-    root = Path(args.data_path)
-    assert root.exists(), f'provided Ant path {root} does not exist'
+    root_source = Path(args.data_path)
+    root_target = Path(args.data_path_target)
+    assert root_source.exists(), f'provided Ant path {root_source} does not exist'
+    assert root_target.exists(), f'provided Ant path {root_target} does not exist'
     mode = 'instances'
     PATHS = {
-        "train": (root / "train", root / 'ground-truth-train.json'),
-        "val": (root / "val", root / 'ground-truth-val.json'),
+        "train": (root_source / "train", root_source / 'ground-truth-train.json'),
+        "val": (root_source / "val", root_source / 'ground-truth-val.json'),
+        "test": (root_source / "test", root_source / 'ground-truth-test.json'),
+
+        "train_target": (root_target / "train", root_target / 'ground-truth-train.json'),
+        "val_target": (root_target / "val", root_target / 'ground-truth-val.json'),
+        "test_target": (root_target / "test", root_target / 'ground-truth-test.json'),
     }
 
     img_folder, ann_file = PATHS[image_set]
