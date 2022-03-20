@@ -15,7 +15,7 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
-                    data_loader: Iterable, data_loader_target: Iterable, optimizer: torch.optim.Optimizer,
+                    data_loader: Iterable, data_iter_train_target, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, max_norm: float = 0):
     model.train()
     criterion.train()
@@ -24,22 +24,36 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     metric_logger.add_meter('class_error', utils.SmoothedValue(window_size=1, fmt='{value:.2f}'))
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
-
     for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+
+        # Source dataset training
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        outputs, out_d_pixels = model(samples)
+        outputs, out_d_pixel_s = model(samples)
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+        dloss_s_p = torch.mean(out_d_pixel_s ** 2) * 0.5
+
+        # Target dataset training
+        samples_t, targets_t = next(data_iter_train_target)
+        samples_t = samples_t.to(device)
+        out_d_pixel_t = model(samples_t, target=True)
+        dloss_t_p = torch.mean((1 - out_d_pixel_t) ** 2) * 0.5
+
+        dloss_total = (dloss_s_p + dloss_t_p)
+        losses += dloss_total
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
+        loss_dict_reduced_unscaled['discriminator_loss_source'] = dloss_s_p
+        loss_dict_reduced_unscaled['discriminator_loss_target'] = dloss_t_p
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
+        loss_dict_reduced_scaled['discriminator_loss'] = dloss_total
         losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
 
         loss_value = losses_reduced_scaled.item()

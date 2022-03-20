@@ -103,6 +103,12 @@ def get_args_parser():
     return parser
 
 
+def cycle(iterable):
+    while True:
+        for x in iterable:
+            yield x
+
+
 def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
@@ -181,6 +187,7 @@ def main(args):
                                    collate_fn=utils.collate_fn, num_workers=args.num_workers)
     data_loader_val_target = DataLoader(dataset_val_target, args.batch_size, sampler=sampler_val_target,
                                  drop_last=False, collate_fn=utils.collate_fn, num_workers=args.num_workers)
+    data_iter_train_target = iter(cycle(data_loader_train_target))
 
     if args.dataset_file == "coco_panoptic":
         # We also evaluate AP during panoptic training, on original coco DS
@@ -227,7 +234,7 @@ def main(args):
             sampler_train_source.set_epoch(epoch)
             sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train_source, data_loader_train_target, optimizer, device, epoch,
+            model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
         if args.output_dir:
