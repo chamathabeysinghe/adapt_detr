@@ -9,11 +9,11 @@ import cv2
 
 SCALE = 4.0
 DATASET_NAME = 'detection_target_dataset'
-split = 'val'
+split = 'test'
 file_names = []
-if DATASET_NAME == 'detection_target_dataset':
+if 'target' in DATASET_NAME:
     file_names = VIDEO_CLIPS_TARGET[split]
-elif DATASET_NAME == 'detection_source_dataset':
+elif 'source' in DATASET_NAME:
     file_names = VIDEO_CLIPS[split]
 json_obj = {
     "categories": [
