@@ -94,8 +94,11 @@ def get_args_parser():
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
+    parser.add_argument('--init', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
-    parser.add_argument('--checkpoint_freq', default=100, type=int)
+    parser.add_argument('--checkpoint_freq', default=10, type=int)
+    parser.add_argument('--target_test_freq', default=1, type=int)
+    parser.add_argument('--source_test_freq', default=1, type=int)
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
@@ -212,7 +215,7 @@ def main(args):
         del checkpoint['model']['class_embed.bias']
         # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
+        if not args.eval and not args.init and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             args.start_epoch = checkpoint['epoch'] + 1
@@ -251,12 +254,22 @@ def main(args):
                     'args': args,
                 }, checkpoint_path)
 
-        test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val_source, base_ds_source, device, args.output_dir
-        )
-        test_stats_target, coco_evaluator_target = evaluate(
-            model, criterion, postprocessors, data_loader_val_target, base_ds_target, device, args.output_dir
-        )
+        test_stats = {}
+        test_stats_target = {}
+        coco_evaluator = None
+        coco_evaluator_target = None
+
+        if (epoch + 1) % args.source_test_freq == 0:
+            print('Evaluation source domain dataset...')
+            test_stats, coco_evaluator = evaluate(
+                model, criterion, postprocessors, data_loader_val_source, base_ds_source, device, args.output_dir
+            )
+
+        if (epoch + 1) % args.target_test_freq == 0:
+            print('Evaluation target domain dataset...')
+            test_stats_target, coco_evaluator_target = evaluate(
+                model, criterion, postprocessors, data_loader_val_target, base_ds_target, device, args.output_dir
+            )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
