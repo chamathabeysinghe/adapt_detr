@@ -105,6 +105,8 @@ def get_args_parser():
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
     # experiment names
     parser.add_argument('--name', type=str, required=True)
+    parser.add_argument('--init', action='store_true')
+
     return parser
 
 
@@ -214,9 +216,10 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
-        del checkpoint['model']['class_embed.weight']
-        del checkpoint['model']['class_embed.bias']
-        # del checkpoint['model']['query_embed.weight']
+        if args.init:
+            del checkpoint['model']['class_embed.weight']
+            del checkpoint['model']['class_embed.bias']
+            # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if not args.eval and not args.init and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
@@ -282,7 +285,7 @@ def main(args):
         if utils.is_main_process():
             for k, v in train_stats.items():
                 writer.add_scalar(f'{k}/train', v, epoch)
-            for k, v in train_stats.items():
+            for k, v in test_stats.items():
                 if 'coco' in k:
                     writer.add_scalar(f'mAP/test_source', v[0], epoch)
                     writer.add_scalar(f'AP@0.50/test_source', v[1], epoch)
