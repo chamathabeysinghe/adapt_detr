@@ -237,7 +237,7 @@ def main(args):
         if utils.is_main_process():
             for k, v in train_stats.items():
                 writer.add_scalar(f'{k}/train', v, epoch)
-            for k, v in train_stats.items():
+            for k, v in test_stats.items():
                 if 'coco' in k:
                     writer.add_scalar(f'mAP/test', v[0], epoch)
                     writer.add_scalar(f'AP@0.50/test', v[1], epoch)
