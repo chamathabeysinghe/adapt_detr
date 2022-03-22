@@ -1,5 +1,6 @@
 .nfs*
 *.ipynb
+training_visualizations/logs/*
 *.pyc
 .dumbo.json
 .DS_Store
