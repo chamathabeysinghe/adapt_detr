@@ -284,11 +284,18 @@ def main(args):
                 writer.add_scalar(f'{k}/train', v, epoch)
             for k, v in train_stats.items():
                 if 'coco' in k:
-                    writer.add_scalar(f'mAP/test', v[0], epoch)
-                    writer.add_scalar(f'AP@0.50/test', v[1], epoch)
-                    writer.add_scalar(f'AP@0.75/test', v[2], epoch)
+                    writer.add_scalar(f'mAP/test_source', v[0], epoch)
+                    writer.add_scalar(f'AP@0.50/test_source', v[1], epoch)
+                    writer.add_scalar(f'AP@0.75/test_source', v[2], epoch)
                 else:
-                    writer.add_scalar(f'{k}/test', v, epoch)
+                    writer.add_scalar(f'{k}/test_source', v, epoch)
+            for k, v in test_stats_target.items():
+                if 'coco' in k:
+                    writer.add_scalar(f'mAP/test_target', v[0], epoch)
+                    writer.add_scalar(f'AP@0.50/test_target', v[1], epoch)
+                    writer.add_scalar(f'AP@0.75/test_target', v[2], epoch)
+                else:
+                    writer.add_scalar(f'{k}/test_target', v, epoch)
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
