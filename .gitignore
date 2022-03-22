@@ -8,6 +8,9 @@ training_visualizations/logs/*
 *.pth
 **/__pycache__/**
 .ipynb_checkpoints/
+training_visualizations/logs
+runs/
+.run
 datasets/data/
 experiment-*
 *.tmp

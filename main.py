@@ -15,7 +15,7 @@ import util.misc as utils
 from datasets import build_dataset, get_coco_api_from_dataset
 from engine import evaluate, train_one_epoch
 from models import build_model
-
+from torch.utils.tensorboard import SummaryWriter
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
@@ -103,6 +103,8 @@ def get_args_parser():
     parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
     parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
+    # experiment names
+    parser.add_argument('--name', type=str, required=True)
     return parser
 
 
@@ -119,6 +121,7 @@ def main(args):
     if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
     print(args)
+    writer = SummaryWriter(f'runs/{args.name}')
 
     device = torch.device(args.device)
 
@@ -276,6 +279,16 @@ def main(args):
                      **{f'test_target_{k}': v for k, v in test_stats_target.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
+        if utils.is_main_process():
+            for k, v in train_stats.items():
+                writer.add_scalar(f'{k}/train', v, epoch)
+            for k, v in train_stats.items():
+                if 'coco' in k:
+                    writer.add_scalar(f'mAP/test', v[0], epoch)
+                    writer.add_scalar(f'AP@0.50/test', v[1], epoch)
+                    writer.add_scalar(f'AP@0.75/test', v[2], epoch)
+                else:
+                    writer.add_scalar(f'{k}/test', v, epoch)
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
