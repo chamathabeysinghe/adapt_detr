@@ -8,7 +8,8 @@ import cv2
 
 
 SCALE = 4.0
-DATASET_NAME = 'detection_target_dataset'
+SKIP_INTERVAL = 12
+DATASET_NAME = 'detection_source_dataset_small'
 split = 'test'
 file_names = []
 if 'target' in DATASET_NAME:
@@ -37,6 +38,8 @@ for file in file_names:
     image_dir = os.path.join(DATASET_DIR, DATASET_NAME, split)
     os.makedirs(image_dir, exist_ok=True)
     for image_id in range(num_frames):
+        if image_id % SKIP_INTERVAL != 0:
+            continue
         image_count += 1
         image_name = f'{file}_{image_id:06d}'
         cv2.imwrite(os.path.join(image_dir, f'{image_name}.jpg'), frames[image_id])
