@@ -95,7 +95,6 @@ def get_args_parser():
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
-    parser.add_argument('--init', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--checkpoint_freq', default=10, type=int)
     parser.add_argument('--target_test_freq', default=1, type=int)
