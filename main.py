@@ -227,8 +227,10 @@ def main(args):
             args.start_epoch = checkpoint['epoch'] + 1
 
     if args.eval:
+        print('Evaluating source domain dataset...')
         test_stats_source, coco_evaluator_source = evaluate(model, criterion, postprocessors,
                                               data_loader_val_source, base_ds_source, device, args.output_dir)
+        print('Evaluation target domain dataset...')
         test_stats_target, coco_evaluator_target = evaluate(model, criterion, postprocessors,
                                               data_loader_val_source, base_ds_target, device, args.output_dir)
         if args.output_dir:
