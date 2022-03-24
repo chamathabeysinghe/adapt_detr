@@ -232,7 +232,7 @@ def main(args):
                                               data_loader_val_source, base_ds_source, device, args.output_dir)
         print('Evaluation target domain dataset...')
         test_stats_target, coco_evaluator_target = evaluate(model, criterion, postprocessors,
-                                              data_loader_val_source, base_ds_target, device, args.output_dir)
+                                              data_loader_val_target, base_ds_target, device, args.output_dir)
         if args.output_dir:
             utils.save_on_master(coco_evaluator_source.coco_eval["bbox"].eval, output_dir / "eval.pth")
             utils.save_on_master(coco_evaluator_target.coco_eval["bbox"].eval, output_dir / "eval_target.pth")
