@@ -77,6 +77,7 @@ def get_args_parser():
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
+    parser.add_argument('--disc_loss_coef', default=1, type=float)
 
     # dataset parameters
     parser.add_argument('--dataset_file', default='coco')
@@ -94,7 +95,6 @@ def get_args_parser():
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
-    # parser.add_argument('--init', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--checkpoint_freq', default=10, type=int)
     parser.add_argument('--target_test_freq', default=1, type=int)
@@ -244,7 +244,7 @@ def main(args):
             sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch,
-            args.clip_max_norm)
+            args.clip_max_norm, args.disc_loss_coef)
         lr_scheduler.step()
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']

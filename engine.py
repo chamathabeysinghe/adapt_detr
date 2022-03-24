@@ -16,7 +16,7 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, data_iter_train_target, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, max_norm: float = 0):
+                    device: torch.device, epoch: int, max_norm: float = 0, disc_loss_coef=1):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -42,7 +42,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         out_d_pixel_t = model(samples_t, target=True)
         dloss_t_p = torch.mean((1 - out_d_pixel_t) ** 2) * 0.5
 
-        dloss_total = (dloss_s_p + dloss_t_p)
+        dloss_total = (dloss_s_p + dloss_t_p) * disc_loss_coef
         losses += dloss_total
 
         # reduce losses over all GPUs for logging purposes
@@ -53,6 +53,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         loss_dict_reduced_unscaled['discriminator_loss_target'] = dloss_t_p
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
+        detr_loss_value = sum(loss_dict_reduced_scaled.values()).item()
         loss_dict_reduced_scaled['discriminator_loss'] = dloss_total
         losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
 
@@ -69,7 +70,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
 
-        metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
+        metric_logger.update(loss=loss_value, detr_loss=detr_loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
     # gather the stats from all processes
@@ -113,7 +114,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
-        metric_logger.update(loss=sum(loss_dict_reduced_scaled.values()),
+        metric_logger.update(detr_loss=sum(loss_dict_reduced_scaled.values()),
                              **loss_dict_reduced_scaled,
                              **loss_dict_reduced_unscaled)
         metric_logger.update(class_error=loss_dict_reduced['class_error'])
