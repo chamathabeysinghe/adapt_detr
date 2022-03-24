@@ -14,7 +14,7 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 import torch
-
+import os
 import util.misc as utils
 
 from models import build_model
@@ -166,7 +166,7 @@ def infer(images_path, model, postprocessors, device, output_path):
         ]
 
         start_t = time.perf_counter()
-        outputs = model(image)
+        outputs, _ = model(image)
         end_t = time.perf_counter()
 
         outputs["pred_logits"] = outputs["pred_logits"].cpu()
@@ -226,8 +226,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('DETR training and evaluation script', parents=[get_args_parser()])
     args = parser.parse_args()
     if args.output_dir:
-        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-
+        # Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+        os.makedirs(args.output_dir, exist_ok=True)
     device = torch.device(args.device)
 
     model, _, postprocessors = build_model(args)
