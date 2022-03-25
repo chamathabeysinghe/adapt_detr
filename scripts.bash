@@ -76,3 +76,6 @@ python visualizer.py --device cpu --dataset_file ant --data_path /Users/cabe0006
 
 
 
+/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=2 --use_env main.py  --dataset_file ant2 --data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_source_dataset --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/da_detr_v1 --data_path_target /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_target_dataset --batch_size 2 --target_test_freq 1 --source_test_freq 5
+/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=2 --use_env main.py  --dataset_file ant2 --data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_source_dataset_small --output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/detr_discriminator_101_small_dataset --data_path_target /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_target_dataset_small --batch_size 2 --target_test_freq 1 --source_test_freq 5 --name detr_discriminator_101_small_dataset
+

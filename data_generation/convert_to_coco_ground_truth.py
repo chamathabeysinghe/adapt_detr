@@ -1,6 +1,6 @@
-from utils.configuration import DATASET_DIR
-from utils.configuration import VIDEO_CLIPS, VIDEO_CLIPS_TARGET
-from utils.video_tools import get_frames
+from data_generation.utils.configuration import DATASET_DIR
+from data_generation.utils.configuration import VIDEO_CLIPS, VIDEO_CLIPS_TARGET
+from data_generation.utils.video_tools import get_frames
 import pandas as pd
 import json
 import os
@@ -9,8 +9,8 @@ import cv2
 
 SCALE = 4.0
 SKIP_INTERVAL = 12
-DATASET_NAME = 'detection_source_dataset_small'
-split = 'test'
+DATASET_NAME = 'detection_target_dataset_small'
+split = 'val'
 file_names = []
 if 'target' in DATASET_NAME:
     file_names = VIDEO_CLIPS_TARGET[split]

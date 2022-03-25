@@ -1,0 +1,11 @@
+/home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=2 --use_env main.py  \
+				--dataset_file ant2 \
+				--data_path /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_source_dataset_small \
+				--data_path_target /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/cvpr_data/detection_target_dataset_small \
+				--output_dir /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/detr_disc_exp4_small_dataset_coef_100 \
+				--batch_size 2 \
+				--resume /home/cabe0006/mb20_scratch/chamath/cvpr_experiments/detr_output/original_paper_checkpoints/detr-r101-2c7b67e5.pth \
+				--backbone resnet101 \
+				--name detr_disc_exp4_small_dataset_coef_100 \
+				--init \
+				--disc_loss_coef 100
