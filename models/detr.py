@@ -13,6 +13,7 @@ from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
 
 from .backbone import build_backbone
 from .netD_pixel import build_discriminator
+from .netD import build_global_discriminator
 from .matcher import build_matcher
 from .segmentation import (DETRsegm, PostProcessPanoptic, PostProcessSegm,
                            dice_loss, sigmoid_focal_loss)
@@ -51,7 +52,7 @@ def grad_reverse(x):
 
 class DETR(nn.Module):
     """ This is the DETR module that performs object detection """
-    def __init__(self, backbone, discriminator, transformer, num_classes, num_queries, aux_loss=False):
+    def __init__(self, backbone, discriminator, discriminator_global, transformer, num_classes, num_queries, aux_loss=False):
         """ Initializes the model.
         Parameters:
             backbone: torch module of the backbone to be used. See backbone.py
@@ -71,6 +72,7 @@ class DETR(nn.Module):
         self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
         self.backbone = backbone
         self.discriminator = discriminator
+        self.discriminator_global = discriminator_global
         self.aux_loss = aux_loss
 
     def forward(self, samples: NestedTensor, target=False):
@@ -91,10 +93,13 @@ class DETR(nn.Module):
         if isinstance(samples, (list, torch.Tensor)):
             samples = nested_tensor_from_tensor_list(samples)
         features, pos = self.backbone(samples)
-        feat_base, _ = features[0].decompose()
-        d_pixel = self.discriminator(grad_reverse(feat_base))
+        feat_base1, _ = features[0].decompose()
+        feat_base2, _ = features[2].decompose()
+        d_pixel = self.discriminator(grad_reverse(feat_base1))
+        domain_p = self.discriminator_global(grad_reverse(feat_base2))
+
         if target:
-            return d_pixel
+            return d_pixel, domain_p
 
         src, mask = features[-1].decompose()
         assert mask is not None
@@ -105,7 +110,7 @@ class DETR(nn.Module):
         out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
         if self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
-        return out, d_pixel
+        return out, d_pixel, domain_p
 
     @torch.jit.unused
     def _set_aux_loss(self, outputs_class, outputs_coord):
@@ -360,12 +365,13 @@ def build(args):
     backbone = build_backbone(args)
 
     discriminator = build_discriminator(args)
-
+    discriminator_global = build_global_discriminator(args)
     transformer = build_transformer(args)
 
     model = DETR(
         backbone,
         discriminator,
+        discriminator_global,
         transformer,
         num_classes=num_classes,
         num_queries=args.num_queries,

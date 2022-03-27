@@ -17,6 +17,9 @@ from engine import evaluate, train_one_epoch
 from models import build_model
 from torch.utils.tensorboard import SummaryWriter
 
+from util.net_utils import FocalLoss
+
+
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
     parser.add_argument('--lr', default=1e-4, type=float)
@@ -237,7 +240,7 @@ def main(args):
             utils.save_on_master(coco_evaluator_source.coco_eval["bbox"].eval, output_dir / "eval.pth")
             utils.save_on_master(coco_evaluator_target.coco_eval["bbox"].eval, output_dir / "eval_target.pth")
         return
-
+    FL = FocalLoss(class_num=2, gamma=args.gamma)
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -245,7 +248,7 @@ def main(args):
             sampler_train_source.set_epoch(epoch)
             sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch,
+            model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch, FL,
             args.clip_max_norm, args.disc_loss_coef)
         lr_scheduler.step()
         if args.output_dir:
