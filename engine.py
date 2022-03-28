@@ -54,10 +54,16 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
+
+        # unscaled loss values and individual discriminator losses
         loss_dict_reduced_unscaled = {f'{k}_unscaled': v
                                       for k, v in loss_dict_reduced.items()}
         loss_dict_reduced_unscaled['discriminator_loss_source'] = dloss_s_p
+        loss_dict_reduced_unscaled['global_discriminator_loss_source'] = dloss_s
         loss_dict_reduced_unscaled['discriminator_loss_target'] = dloss_t_p
+        loss_dict_reduced_unscaled['global_discriminator_loss_target'] = dloss_t
+
+        # scaled loss values and discriminator total scaled loss
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
                                     for k, v in loss_dict_reduced.items() if k in weight_dict}
         detr_loss_value = sum(loss_dict_reduced_scaled.values()).item()
@@ -111,7 +117,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        outputs, _ = model(samples)
+        outputs, _, _ = model(samples)
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
 
