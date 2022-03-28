@@ -166,7 +166,7 @@ def infer(images_path, model, postprocessors, device, output_path):
         ]
 
         start_t = time.perf_counter()
-        outputs, _ = model(image)
+        outputs, _, _ = model(image)
         end_t = time.perf_counter()
 
         outputs["pred_logits"] = outputs["pred_logits"].cpu()
