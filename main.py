@@ -299,10 +299,10 @@ def main(args):
                         best_val_stats['AP_50'] = v[1]
                     if 'AP_75' not in best_val_stats or best_val_stats['AP_75'] < v[2]:
                         best_val_checkpoints.append(output_dir/f'checkpoint_best_ap_75.pth')
-                        best_val_stats['AP_50'] = v[2]
+                        best_val_stats['AP_75'] = v[2]
                     if 'MAP' not in best_val_stats or best_val_stats['MAP'] < v[0]:
                         best_val_checkpoints.append(output_dir/f'checkpoint_best_map.pth')
-                        best_val_stats['AP_50'] = v[0]
+                        best_val_stats['MAP'] = v[0]
                 else:
                     writer.add_scalar(f'{k}/test_target', v, epoch)
         if args.output_dir:
