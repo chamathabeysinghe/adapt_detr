@@ -210,6 +210,7 @@ def main(args):
         model_without_ddp.detr.load_state_dict(checkpoint['model'])
 
     output_dir = Path(args.output_dir)
+    best_val_stats = None
     if args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -225,12 +226,16 @@ def main(args):
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             args.start_epoch = checkpoint['epoch'] + 1
+            if 'best_val_stats' in checkpoint:
+                best_val_stats = checkpoint['best_val_stats']
 
     if args.eval:
+        print('Evaluating source domain dataset...')
         test_stats_source, coco_evaluator_source = evaluate(model, criterion, postprocessors,
                                               data_loader_val_source, base_ds_source, device, args.output_dir)
+        print('Evaluation target domain dataset...')
         test_stats_target, coco_evaluator_target = evaluate(model, criterion, postprocessors,
-                                              data_loader_val_source, base_ds_target, device, args.output_dir)
+                                              data_loader_val_target, base_ds_target, device, args.output_dir)
         if args.output_dir:
             utils.save_on_master(coco_evaluator_source.coco_eval["bbox"].eval, output_dir / "eval.pth")
             utils.save_on_master(coco_evaluator_target.coco_eval["bbox"].eval, output_dir / "eval_target.pth")
@@ -246,19 +251,7 @@ def main(args):
             model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch,
             args.clip_max_norm, args.disc_loss_coef)
         lr_scheduler.step()
-        if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth']
-            # extra checkpoint before LR drop and every 100 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.checkpoint_freq == 0:
-                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
-            for checkpoint_path in checkpoint_paths:
-                utils.save_on_master({
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'lr_scheduler': lr_scheduler.state_dict(),
-                    'epoch': epoch,
-                    'args': args,
-                }, checkpoint_path)
+
 
         test_stats = {}
         test_stats_target = {}
@@ -282,7 +275,10 @@ def main(args):
                      **{f'test_target_{k}': v for k, v in test_stats_target.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
+        best_val_checkpoints = []
         if utils.is_main_process():
+            if best_val_stats is None:
+                best_val_stats = {}
             for k, v in train_stats.items():
                 writer.add_scalar(f'{k}/train', v, epoch)
             for k, v in test_stats.items():
@@ -297,8 +293,32 @@ def main(args):
                     writer.add_scalar(f'mAP/test_target', v[0], epoch)
                     writer.add_scalar(f'AP@0.50/test_target', v[1], epoch)
                     writer.add_scalar(f'AP@0.75/test_target', v[2], epoch)
+
+                    if 'AP_50' not in best_val_stats or best_val_stats['AP_50'] < v[1]:
+                        best_val_checkpoints.append(output_dir/f'checkpoint_best_ap_50.pth')
+                        best_val_stats['AP_50'] = v[1]
+                    if 'AP_75' not in best_val_stats or best_val_stats['AP_75'] < v[2]:
+                        best_val_checkpoints.append(output_dir/f'checkpoint_best_ap_75.pth')
+                        best_val_stats['AP_50'] = v[2]
+                    if 'MAP' not in best_val_stats or best_val_stats['MAP'] < v[0]:
+                        best_val_checkpoints.append(output_dir/f'checkpoint_best_map.pth')
+                        best_val_stats['AP_50'] = v[0]
                 else:
                     writer.add_scalar(f'{k}/test_target', v, epoch)
+        if args.output_dir:
+            checkpoint_paths = [output_dir / 'checkpoint.pth'] + best_val_checkpoints
+            # extra checkpoint before LR drop and every 100 epochs
+            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.checkpoint_freq == 0:
+                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
+            for checkpoint_path in checkpoint_paths:
+                utils.save_on_master({
+                    'model': model_without_ddp.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'lr_scheduler': lr_scheduler.state_dict(),
+                    'epoch': epoch,
+                    'args': args,
+                    'best_val_stats': best_val_stats
+                }, checkpoint_path)
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
