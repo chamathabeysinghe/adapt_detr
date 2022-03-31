@@ -245,3 +245,15 @@ def build(image_set, args):
     img_folder, ann_file = PATHS[image_set]
     dataset = AntDetection(img_folder, ann_file, return_masks=args.masks, image_set=image_set)
     return dataset
+
+
+def get_video_dataset(video_file, args):
+    root_source = Path(args.data_path)
+    assert root_source.exists(), f'provided Ant path {root_source} does not exist'
+    dataset = AntDetection(
+        root_source / video_file,
+        root_source / f'ground-truth-{video_file}.json',
+        return_masks=args.masks,
+        image_set='val_target')
+    return dataset
+
