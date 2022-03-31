@@ -71,8 +71,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                       for k, v in loss_dict_reduced.items()}
         loss_dict_reduced_unscaled['discriminator_loss_source'] = dloss_s_p
         loss_dict_reduced_unscaled['global_discriminator_loss_source'] = dloss_s
+        loss_dict_reduced_unscaled['encoder_discriminator_loss_source'] = dloss_enc_s
         loss_dict_reduced_unscaled['discriminator_loss_target'] = dloss_t_p
         loss_dict_reduced_unscaled['global_discriminator_loss_target'] = dloss_t
+        loss_dict_reduced_unscaled['encoder_discriminator_loss_target'] = dloss_enc_t
 
         # scaled loss values and discriminator total scaled loss
         loss_dict_reduced_scaled = {k: v * weight_dict[k]
