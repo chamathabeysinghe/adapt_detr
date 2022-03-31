@@ -252,14 +252,14 @@ def process_vid_file(file_name, model, postprocessors, device, args):
     df.to_csv(os.path.join(args.output_dir, args.exp_name, f'{file_name}-{args.exp_name}.csv'), index=False)
 
 
-# video_names = ['CU10L1B1In_0', 'CU10L1B1Out_0', 'CU25L1B1Out_0', 'CU25L1B1In_0',
-#                 'CU15L1B4In_0', 'CU15L1B4Out_0', 'CU20L1B4In_0', 'CU20L1B4Out_0',
-#                 'CU50L1B6In_0', 'CU50L1B6Out_0',
-#                 'CU10L1B5In_0', 'CU10L1B6Out_0', 'CU15L1B1In_0', 'CU20L1B1Out_0', 'CU10L1B4In_0', 'CU25L1B4In_0', 'CU10L1B6In_0', 'CU10L1B5Out_0',
-#                 'CU15L1B1Out_0', 'CU20L1B1In_0', 'CU10L1B4Out_0', 'CU25L1B4Out_0', 'CU30L1B6In_0', 'CU30L1B6Out_0'
-#                ]
+video_names = ['CU10L1B1In_0', 'CU10L1B1Out_0', 'CU25L1B1Out_0', 'CU25L1B1In_0',
+                'CU15L1B4In_0', 'CU15L1B4Out_0', 'CU20L1B4In_0', 'CU20L1B4Out_0',
+                'CU50L1B6In_0', 'CU50L1B6Out_0',
+                'CU10L1B5In_0', 'CU10L1B6Out_0', 'CU15L1B1In_0', 'CU20L1B1Out_0', 'CU10L1B4In_0', 'CU25L1B4In_0', 'CU10L1B6In_0', 'CU10L1B5Out_0',
+                'CU15L1B1Out_0', 'CU20L1B1In_0', 'CU10L1B4Out_0', 'CU25L1B4Out_0', 'CU30L1B6In_0', 'CU30L1B6Out_0'
+               ]
 
-video_names = ['CU25L1B4Out_0']
+# video_names = ['CU25L1B4Out_0']
 
 if __name__ == "__main__":
     print('Inside the main...')
