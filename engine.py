@@ -16,7 +16,7 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, data_iter_train_target, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, FL, max_norm: float = 0, disc_loss_coef=1):
+                    device: torch.device, epoch: int, FL, FL_ENC, max_norm: float = 0, disc_loss_coef=1):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -30,26 +30,37 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         samples = samples.to(device)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-        outputs, out_d_pixel, out_d = model(samples)
+        outputs, out_d_pixel, out_d, out_d_encoder = model(samples)
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
-
+        # weak global alignment loss - source
         domain_s = torch.zeros(out_d.size(0)).long().cuda()
-        # global alignment loss
         dloss_s = 0.5 * FL(out_d, domain_s)
+        # weak encoder alignment loss - source
+        domain_enc_s = torch.zeros(out_d_encoder.size(0)).long().cuda()
+        dloss_enc_s = 0.5 * FL_ENC(out_d_encoder, domain_enc_s)
+        # strong local alignment loss - source
         dloss_s_p = torch.mean(out_d_pixel ** 2) * 0.5
+
 
         # Target dataset training
         samples_t, targets_t = next(data_iter_train_target)
         samples_t = samples_t.to(device)
-        out_d_pixel, out_d = model(samples_t, target=True)
+        out_d_pixel, out_d, out_d_encoder = model(samples_t, target=True)
+
+        # weak global alignment loss - target
         domain_t = torch.ones(out_d.size(0)).long().cuda()
         dloss_t = 0.5 * FL(out_d, domain_t)
+        # weak encoder alignment loss - target
+        domain_enc_t = torch.ones(out_d_encoder.size(0)).long().cuda()
+        dloss_enc_t = 0.5 * FL(out_d_encoder, domain_enc_t)
+        # strong local alignment loss - target
         dloss_t_p = torch.mean((1 - out_d_pixel) ** 2) * 0.5
 
-        dloss_total = (dloss_s_p + dloss_t_p + dloss_s + dloss_t) * disc_loss_coef
+        # total discriminator loss
+        dloss_total = (dloss_s_p + dloss_t_p + dloss_s + dloss_t + dloss_enc_s + dloss_enc_t) * disc_loss_coef
         losses += dloss_total
 
         # reduce losses over all GPUs for logging purposes

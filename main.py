@@ -245,6 +245,7 @@ def main(args):
         return
     # FL = FocalLoss(class_num=2, gamma=args.gamma)
     FL = FocalLoss(class_num=2)
+    FL_ENC = FocalLoss(class_num=2)
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -252,7 +253,7 @@ def main(args):
             sampler_train_source.set_epoch(epoch)
             sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch, FL,
+            model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch, FL, FL_ENC,
             args.clip_max_norm, args.disc_loss_coef)
         lr_scheduler.step()
 
