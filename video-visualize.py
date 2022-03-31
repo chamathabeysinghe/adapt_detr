@@ -184,7 +184,7 @@ def infer(images_path, model, postprocessors, device, output_path, skip=1):
         ]
 
         start_t = time.perf_counter()
-        outputs, _, _ = model(image)
+        outputs = model(image)
         end_t = time.perf_counter()
 
         outputs["pred_logits"] = outputs["pred_logits"].cpu()
@@ -259,7 +259,7 @@ def process_vid_file(file_name, model, postprocessors, device, args):
 #                 'CU15L1B1Out_0', 'CU20L1B1In_0', 'CU10L1B4Out_0', 'CU25L1B4Out_0', 'CU30L1B6In_0', 'CU30L1B6Out_0'
 #                ]
 
-video_names = ['CU10L1B1In_0']
+video_names = ['CU25L1B4Out_0']
 
 if __name__ == "__main__":
     print('Inside the main...')
