@@ -80,8 +80,9 @@ def get_args_parser():
     parser.add_argument('--giou_loss_coef', default=2, type=float)
     parser.add_argument('--eos_coef', default=0.1, type=float,
                         help="Relative classification weight of the no-object class")
-    parser.add_argument('--disc_loss_coef', default=1, type=float)
-
+    parser.add_argument('--disc_loss_coef_local', default=1, type=float)
+    parser.add_argument('--disc_loss_coef_global', default=1, type=float)
+    parser.add_argument('--disc_loss_coef_encoder', default=1, type=float)
     # dataset parameters
     parser.add_argument('--dataset_file', default='coco')
     parser.add_argument('--data_path', type=str)
@@ -254,7 +255,10 @@ def main(args):
             sampler_train_target.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, criterion, data_loader_train_source, data_iter_train_target, optimizer, device, epoch, FL, FL_ENC,
-            args.clip_max_norm, args.disc_loss_coef)
+            args.clip_max_norm,
+            args.disc_loss_coef_local,
+            args.disc_loss_coef_global,
+            args.disc_loss_coef_encoder)
         lr_scheduler.step()
 
 
