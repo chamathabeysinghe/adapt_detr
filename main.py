@@ -32,7 +32,7 @@ def get_args_parser():
     parser.add_argument('--frozen_weights', type=str, default=None,
                         help="Path to the pretrained model. If set, only the mask head will be trained")
     # * Backbone
-    parser.add_argument('--backbone', default='resnet50', type=str,
+    parser.add_argument('--backbone', default='resnet101', type=str,
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--dilation', action='store_true',
                         help="If true, we replace stride with dilation in the last convolutional block (DC5)")
@@ -215,8 +215,39 @@ def main(args):
             model, criterion, data_loader_train, optimizer, device, epoch,
             args.clip_max_norm)
         lr_scheduler.step()
+
+        test_stats, coco_evaluator = evaluate(
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
+        )
+
+        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                     **{f'test_{k}': v for k, v in test_stats.items()},
+                     'epoch': epoch,
+                     'n_parameters': n_parameters}
+        best_val_checkpoints = []
+        if utils.is_main_process():
+            if best_val_stats is None:
+                best_val_stats = {}
+            for k, v in train_stats.items():
+                writer.add_scalar(f'{k}/train', v, epoch)
+            for k, v in test_stats.items():
+                if 'coco' in k:
+                    writer.add_scalar(f'mAP/test', v[0], epoch)
+                    writer.add_scalar(f'AP@0.50/test', v[1], epoch)
+                    writer.add_scalar(f'AP@0.75/test', v[2], epoch)
+                    if 'AP_50' not in best_val_stats or best_val_stats['AP_50'] < v[1]:
+                        best_val_checkpoints.append(output_dir / f'checkpoint_best_ap_50.pth')
+                        best_val_stats['AP_50'] = v[1]
+                    if 'AP_75' not in best_val_stats or best_val_stats['AP_75'] < v[2]:
+                        best_val_checkpoints.append(output_dir / f'checkpoint_best_ap_75.pth')
+                        best_val_stats['AP_75'] = v[2]
+                    if 'MAP' not in best_val_stats or best_val_stats['MAP'] < v[0]:
+                        best_val_checkpoints.append(output_dir / f'checkpoint_best_map.pth')
+                        best_val_stats['MAP'] = v[0]
+                else:
+                    writer.add_scalar(f'{k}/test', v, epoch)
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth']
+            checkpoint_paths = [output_dir / 'checkpoint.pth'] + best_val_checkpoints
             # extra checkpoint before LR drop and every 100 epochs
             if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.checkpoint_freq == 0:
                 checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
@@ -229,25 +260,6 @@ def main(args):
                     'args': args,
                     'best_val_stats': best_val_stats
                 }, checkpoint_path)
-
-        test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir
-        )
-
-        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
-                     'epoch': epoch,
-                     'n_parameters': n_parameters}
-        if utils.is_main_process():
-            for k, v in train_stats.items():
-                writer.add_scalar(f'{k}/train', v, epoch)
-            for k, v in test_stats.items():
-                if 'coco' in k:
-                    writer.add_scalar(f'mAP/test', v[0], epoch)
-                    writer.add_scalar(f'AP@0.50/test', v[1], epoch)
-                    writer.add_scalar(f'AP@0.75/test', v[2], epoch)
-                else:
-                    writer.add_scalar(f'{k}/test', v, epoch)
 
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
