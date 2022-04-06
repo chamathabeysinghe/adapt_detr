@@ -21,8 +21,7 @@ VIDEO_CLIPS_TARGET = {
                      ],
     'val': ['CU15L1B1In_0', 'CU20L1B1Out_0', 'CU10L1B4In_0', 'CU25L1B4In_0', 'CU10L1B6In_0', 'CU10L1B5Out_0'],
     'test': ['CU15L1B1Out_0', 'CU20L1B1In_0', 'CU10L1B4Out_0', 'CU25L1B4Out_0', 'CU30L1B6In_0', 'CU30L1B6Out_0']
-
-    # 'train': ['CU50L1B6Out_0'],
-    # 'val': ['CU50L1B6Out_0'],
-    # 'test': ['CU50L1B6Out_0']
 }
+
+
+
