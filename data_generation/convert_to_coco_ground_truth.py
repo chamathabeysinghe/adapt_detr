@@ -1,5 +1,5 @@
 from utils.configuration import DATASET_DIR
-from utils.configuration import VIDEO_CLIPS
+from utils.configuration import VIDEO_CLIPS, VIDEO_CLIPS_TARGET
 from utils.video_tools import get_frames
 import pandas as pd
 import json
@@ -8,9 +8,14 @@ import cv2
 
 
 SCALE = 4.0
-DATASET_NAME = 'detection_source_dataset'
-split = 'train'
-file_names = VIDEO_CLIPS[split]
+SKIP_INTERVAL = 12
+DATASET_NAME = 'detection_target_dataset_small_new_split'
+split = 'val'
+file_names = []
+if 'target' in DATASET_NAME:
+    file_names = VIDEO_CLIPS_TARGET[split]
+elif 'source' in DATASET_NAME:
+    file_names = VIDEO_CLIPS[split]
 json_obj = {
     "categories": [
         {
@@ -33,6 +38,8 @@ for file in file_names:
     image_dir = os.path.join(DATASET_DIR, DATASET_NAME, split)
     os.makedirs(image_dir, exist_ok=True)
     for image_id in range(num_frames):
+        if image_id % SKIP_INTERVAL != 0:
+            continue
         image_count += 1
         image_name = f'{file}_{image_id:06d}'
         cv2.imwrite(os.path.join(image_dir, f'{image_name}.jpg'), frames[image_id])
