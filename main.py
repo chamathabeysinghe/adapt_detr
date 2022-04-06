@@ -180,6 +180,7 @@ def main(args):
         model_without_ddp.detr.load_state_dict(checkpoint['model'])
 
     output_dir = Path(args.output_dir)
+    best_val_stats = None
     if args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -191,10 +192,12 @@ def main(args):
             del checkpoint['model']['class_embed.bias']
             # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
+        if not args.eval and not args.init and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             args.start_epoch = checkpoint['epoch'] + 1
+            if 'best_val_stats' in checkpoint:
+                best_val_stats = checkpoint['best_val_stats']
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
@@ -224,6 +227,7 @@ def main(args):
                     'lr_scheduler': lr_scheduler.state_dict(),
                     'epoch': epoch,
                     'args': args,
+                    'best_val_stats': best_val_stats
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
