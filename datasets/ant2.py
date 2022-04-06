@@ -188,7 +188,7 @@ def get_train_transforms_torch_reduced():
     ])
 
     return T.Compose([
-        T.RandomResize([(1024, 542)], max_size=1333),
+        T.RandomResize([800], max_size=1333),
         normalize,
     ])
 
@@ -204,11 +204,11 @@ def get_train_transforms_torch():
     return T.Compose([
         T.RandomHorizontalFlip(),
         T.RandomSelect(
-            T.RandomResize([(1024, 542)], max_size=1333),
+            T.RandomResize(scales, max_size=1333),
             T.Compose([
                 T.RandomResize([400, 500, 600]),
                 T.RandomSizeCrop(384, 600),
-                T.RandomResize([(1024, 542)], max_size=1333),
+                T.RandomResize(scales, max_size=1333),
             ])
         ),
         normalize,
@@ -221,7 +221,7 @@ def get_val_transforms_torch():
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     return T.Compose([
-        T.RandomResize([(1024, 542)], max_size=1333),
+        T.RandomResize([800], max_size=1333),
         normalize,
     ])
 
