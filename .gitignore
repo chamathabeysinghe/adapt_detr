@@ -24,3 +24,4 @@ output
 output_server
 scripts.bash
 checkpoints
+data_generation
