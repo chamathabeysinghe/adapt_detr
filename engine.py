@@ -16,7 +16,7 @@ from datasets.panoptic_eval import PanopticEvaluator
 
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, data_iter_train_target, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, FL, max_norm: float = 0, disc_loss_coef=1):
+                    device: torch.device, epoch: int, FL, max_norm: float = 0, disc_loss_coef1=1, disc_loss_coef2=1,):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -49,7 +49,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         dloss_t = 0.5 * FL(out_d, domain_t)
         dloss_t_p = torch.mean((1 - out_d_pixel) ** 2) * 0.5
 
-        dloss_total = (dloss_s_p + dloss_t_p + dloss_s + dloss_t) * disc_loss_coef
+        # total discriminator loss
+        dloss_total = (dloss_s_p + dloss_t_p) * disc_loss_coef1 + (dloss_s + dloss_t) * disc_loss_coef2
         losses += dloss_total
 
         # reduce losses over all GPUs for logging purposes
