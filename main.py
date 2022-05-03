@@ -245,7 +245,7 @@ def main(args):
             utils.save_on_master(coco_evaluator_target.coco_eval["bbox"].eval, output_dir / "eval_target.pth")
         return
     # FL = FocalLoss(class_num=2, gamma=args.gamma)
-    FL = FocalLoss(class_num=3)
+    FL = FocalLoss(class_num=2)
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
