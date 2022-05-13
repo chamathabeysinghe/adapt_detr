@@ -1,5 +1,5 @@
 DATASET_DIR = '/dice1-data/home/cabe0006/cvpr_experiments/cvpr_data'
-
+# DATASET_DIR = '/Users/cabe0006/Projects/monash/cvpr_data'
 VIDEO_CLIPS = {
     'test': ['OU50B1L1Out_0',
              'OU10B1L2In_0',
@@ -39,7 +39,13 @@ VIDEO_CLIPS_TARGET = {
     'test': ['CU15L1B1In_0', 'CU20L1B1Out_0', 'CU15L1B4In_0', 'CU20L1B4Out_0', 'CU30L1B6Out_0', 'CU10L1B6In_0'],
     'val': ['CU15L1B1Out_0', 'CU20L1B1In_0', 'CU15L1B4Out_0', 'CU20L1B4In_0', 'CU10L1B5Out_0', 'CU30L1B6In_0'],
     'train': ['CU10L1B1In_0', 'CU10L1B1Out_0', 'CU25L1B1Out_0', 'CU25L1B1In_0', 'CU10L1B4In_0', 'CU10L1B4Out_0',
-              'CU25L1B4In_0', 'CU25L1B4Out_0', 'CU10L1B5In_0', 'CU10L1B6Out_0', 'CU50L1B6In_0', 'CU50L1B6Out_0']
+              'CU25L1B4In_0', 'CU25L1B4Out_0', 'CU10L1B5In_0', 'CU10L1B6Out_0', 'CU50L1B6In_0', 'CU50L1B6Out_0'],
+    'train_unlabelled': ['CU30L1B6Out_2', 'CU10L1B6In_2', 'CU20L1B4Out_2', 'CU15L1B1Out_2',
+                         'CU10L1B4In_2', 'CU25L1B1In_2', 'CU20L1B1In_2', 'CU15L1B4In_2',
+                         'CU10L1B5In_2', 'CU10L1B5Out_2', 'CU10L1B4Out_2', 'CU25L1B1Out_2',
+                         'CU20L1B1Out_2', 'CU15L1B4Out_2', 'CU20L1B4In_2', 'CU15L1B1In_2',
+                         'CU10L1B1Out_2', 'CU25L1B4Out_2', 'CU10L1B1In_2', 'CU25L1B4In_2',
+                         'CU10L1B6Out_2', 'CU50L1B6Out_2', 'CU30L1B6In_2', 'CU50L1B6In_2']
 }
 
 
