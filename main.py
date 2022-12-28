@@ -187,9 +187,9 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
-        if args.init:
-            del checkpoint['model']['class_embed.weight']
-            del checkpoint['model']['class_embed.bias']
+        # if args.init:
+            # del checkpoint['model']['class_embed.weight']
+            # del checkpoint['model']['class_embed.bias']
             # del checkpoint['model']['query_embed.weight']
         model_without_ddp.load_state_dict(checkpoint['model'], strict=False)
         if not args.eval and not args.init and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:

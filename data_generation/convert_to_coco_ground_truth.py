@@ -8,8 +8,8 @@ import cv2
 
 
 SCALE = 4.0
-SKIP_INTERVAL = 12
-DATASET_NAME = 'detection_target_dataset_small_new_split'
+SKIP_INTERVAL = 3
+DATASET_NAME = 'detection_source_nature_augmented_small'
 split = 'val'
 file_names = []
 if 'target' in DATASET_NAME:
@@ -32,9 +32,9 @@ COCO_DIR = os.path.join(DATASET_DIR, DATASET_NAME)
 os.makedirs(COCO_DIR, exist_ok=True)
 
 for file in file_names:
-    df = pd.read_csv(os.path.join(DATASET_DIR, 'raw_data', 'csv', f'{file}.csv'))
+    df = pd.read_csv(os.path.join(DATASET_DIR, 'raw_data_augmented', 'csv', f'{file}.csv'))
     num_frames = max(df.image_id.unique()) + 1
-    frames = get_frames(os.path.join(DATASET_DIR, 'raw_data', 'videos', f'{file}.mp4'), max=num_frames)
+    frames = get_frames(os.path.join(DATASET_DIR, 'raw_data_augmented', 'videos', f'{file}.mp4'), max=num_frames)
     image_dir = os.path.join(DATASET_DIR, DATASET_NAME, split)
     os.makedirs(image_dir, exist_ok=True)
     for image_id in range(num_frames):

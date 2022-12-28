@@ -22,7 +22,7 @@ from datasets.ant import make_Ant_transforms
 
 import matplotlib.pyplot as plt
 import time
-
+import random
 
 def box_cxcywh_to_xyxy(x):
     x_c, y_c, w, h = x.unbind(1)
@@ -47,7 +47,7 @@ def get_images(in_path):
             if ext == '.jpg' or ext == '.jpeg' or ext == '.gif' or ext == '.png' or ext == '.pgm':
                 img_files.append(os.path.join(dirpath, file))
 
-    return img_files
+    return sorted(img_files)
 
 
 def get_args_parser():
@@ -65,7 +65,7 @@ def get_args_parser():
     parser.add_argument('--frozen_weights', type=str, default=None,
                         help="Path to the pretrained model. If set, only the mask head will be trained")
     # * Backbone
-    parser.add_argument('--backbone', default='resnet50', type=str,
+    parser.add_argument('--backbone', default='resnet101', type=str,
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--dilation', action='store_true',
                         help="If true, we replace stride with dilation in the last convolutional block (DC5)")
@@ -197,16 +197,19 @@ def infer(images_path, model, postprocessors, device, output_path):
         img_id = filename.split('.')[0]
         for idx, box in enumerate(bboxes_scaled):
             bbox = box.cpu().data.numpy()
-            bbox = bbox.astype(np.int32)
+            bbox = bbox.astype(np.int32).tolist()
+            # print(bbox.shape)
             results_data.append([img_id, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]])
-            bbox = np.array([
-                [bbox[0], bbox[1]],
-                [bbox[2], bbox[1]],
-                [bbox[2], bbox[3]],
-                [bbox[0], bbox[3]],
-                ])
-            bbox = bbox.reshape((4, 2))
-            cv2.polylines(img, [bbox], True, (0, 255, 0), 2)
+            color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+            cv2.circle(img, ((bbox[0]+bbox[2])//2, (bbox[1]+bbox[3])//2), 2, color, 2)
+            # bbox = np.array([
+            #     [bbox[0], bbox[1]],
+            #     [bbox[2], bbox[1]],
+            #     [bbox[2], bbox[3]],
+            #     [bbox[0], bbox[3]],
+            #     ])
+            # bbox = bbox.reshape((4, 2))
+            # cv2.polylines(img, [bbox], True, (0, 255, 0), 2)
 
         img_save_path = os.path.join(output_path, filename)
         cv2.imwrite(img_save_path, img)
