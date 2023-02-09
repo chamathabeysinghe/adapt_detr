@@ -47,7 +47,7 @@ def get_images(in_path):
             if ext == '.jpg' or ext == '.jpeg' or ext == '.gif' or ext == '.png' or ext == '.pgm':
                 img_files.append(os.path.join(dirpath, file))
 
-    return img_files
+    return sorted(img_files)[:10]
 
 
 def get_args_parser():
@@ -198,7 +198,7 @@ def infer(images_path, model, postprocessors, device, output_path):
         for idx, box in enumerate(bboxes_scaled):
             bbox = box.cpu().data.numpy()
             bbox = bbox.astype(np.int32)
-            results_data.append([img_id, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]])
+            results_data.append([img_id, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1], probas[idx]])
             bbox = np.array([
                 [bbox[0], bbox[1]],
                 [bbox[2], bbox[1]],
@@ -233,11 +233,11 @@ if __name__ == "__main__":
     model, _, postprocessors = build_model(args)
     if args.resume:
         checkpoint = torch.load(args.resume, map_location='cpu')
-        model.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint['model'], strict=False)
     print('Starting to test....')
     model.to(device)
     image_paths = get_images(args.data_path)
     os.makedirs(args.output_dir, exist_ok=True)
     data = infer(image_paths, model, postprocessors, device, args.output_dir)
-    df = pd.DataFrame(data, columns=['image_id', 'x', 'y', 'w', 'h'])
+    df = pd.DataFrame(data, columns=['image_id', 'x', 'y', 'w', 'h', 'score'])
     df.to_csv(args.output_dir + '.csv', index=False)
