@@ -4,7 +4,7 @@
 for i in colony3_small_day_2 colony5_small_day_2 colony6_small_day_1 colony7_small_day_1
 do
 #  /home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py --dataset_file ant --data_path /home/cabe0006/mb20_scratch/chamath/data/ant_dataset_images/$i --output_dir /home/cabe0006/mb20_scratch/chamath/data/ant_dataset_medium_image_predictions/$i --resume /home/cabe0006/mb20_scratch/chamath/detr-v4/checkpoints/checkpoint.pth --thresh 0.75
-  /dice1-data/home/cabe0006/Projects/py_environments/env/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py --dataset_file ant --data_path /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/input/$i --output_dir /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/detr_detections/$i --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/new_detr_exp1/checkpoint_best_ap_50.pth --thresh 0.94
+  /dice1-data/home/cabe0006/Projects/py_environments/env/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py --dataset_file ant --data_path /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/input/$i --output_dir /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/detr_detections/$i --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_exp_27_repeat_21/checkpoint_best_ap_50.pth --thresh 0.94
 
 #  python test.py --value=$i
 #  python -c 'print "a"*'$i

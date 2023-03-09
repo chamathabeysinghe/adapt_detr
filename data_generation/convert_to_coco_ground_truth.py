@@ -9,7 +9,7 @@ import random
 
 SCALE = 1.0
 SKIP_INTERVAL = 1
-DATASET_NAME = 'detection_v2'
+DATASET_NAME = 'detection_v2_large_videos'
 # split = 'train'
 file_names = VIDEOS_CLIPS
 

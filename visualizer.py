@@ -199,7 +199,7 @@ def infer(images_path, model, postprocessors, device, output_path):
             bbox = box.cpu().data.numpy()
             bbox = bbox.astype(np.int32).tolist()
             # print(bbox.shape)
-            results_data.append([img_id, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1], probas[idx]])
+            results_data.append([img_id, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1], probas[idx][0]])
             color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             # cv2.circle(img, ((bbox[0]+bbox[2])//2, (bbox[1]+bbox[3])//2), 2, color, 2)
             bbox = np.array([

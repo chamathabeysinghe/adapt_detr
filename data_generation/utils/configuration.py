@@ -1,7 +1,8 @@
 DATASET_DIR = '/dice1-data/home/cabe0006/cvpr_experiments/cvpr_data'
 # DATASET_DIR = '/Users/cabe0006/Projects/monash/cvpr_data'
 
-VIDEOS_CLIPS = ['colony3_small_day_2', 'colony5_small_day_2', 'colony6_small_day_1', 'colony7_small_day_1']
+VIDEOS_CLIPS = ['colony3_large_day_1', 'colony5_large_day1', 'colony6_large_day_2', 'colony7_large_day_2']
+# VIDEOS_CLIPS = ['colony3_small_day_2', 'colony5_small_day_2', 'colony6_small_day_1', 'colony7_small_day_1']
 
 # VIDEO_CLIPS = {
 #     'test': ['OU10B1L1Out_0_mod_0'],
