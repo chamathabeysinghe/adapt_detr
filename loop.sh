@@ -1,9 +1,13 @@
-#!/bin/bash
-for i in 52 53 54 55 56 57 58 59 60
-do
-  /home/cabe0006/mb20_scratch/chamath/detr/venv_detr/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py --dataset_file ant --data_path /home/cabe0006/mb20_scratch/chamath/data/ant_dataset_images/tagged/$i/ --output_dir /home/cabe0006/mb20_scratch/chamath/data/ant_dataset_detr_predictions/tagged/$i --resume /home/cabe0006/mb20_scratch/chamath/detr/output_new_augmentations/checkpoint.pth
-
-#  python test.py --value=$i
-#  python -c 'print "a"*'$i
-done
+python main.py  \
+--dataset_file ant2 \
+--data_path /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_source_dataset \
+--data_path_target /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_v2 \
+--output_dir /dice1-data/home/cabe0006/cvpr_experiments/detr_output/new_detr_exp2 \
+--batch_size 2 \
+--resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/checkpoints_paper/detr-r101-2c7b67e5.pth \
+--backbone resnet101 \
+--name detr-target_newsmalldataset-source_prevsourcedataset \
+--init \
+--disc_loss_coef_local 100 \
+--disc_loss_coef_global 100
 
