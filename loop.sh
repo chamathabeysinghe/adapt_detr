@@ -6,7 +6,7 @@ python main.py  \
 --batch_size 2 \
 --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_exp25/checkpoint_best_ap_50.pth \
 --backbone resnet101 \
---name detr-task-switching-exp \
+--name detr-task-switching-exp-target \
 --init \
 --disc_loss_coef_local 100 \
 --disc_loss_coef_global 100 \
