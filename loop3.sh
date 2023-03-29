@@ -6,8 +6,8 @@ do
   /dice1-data/home/cabe0006/Projects/py_environments/env/bin/python -m torch.distributed.launch --nproc_per_node=1 --use_env visualizer.py \
   --dataset_file ant \
   --data_path /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/input/$i \
-  --output_dir /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/detr_detections_test/$i \
-  --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_task_switching/checkpoint0029.pth \
+  --output_dir /dice1-data/home/cabe0006/cvpr_experiments/trackformer_output/predictions/detr_detections_test/target_$i \
+  --resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_task_switching_target/checkpoint0021.pth \
   --thresh 0.94
 
 done
