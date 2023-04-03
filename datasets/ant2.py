@@ -238,7 +238,7 @@ def build(image_set, args):
         "test": (root_source / "test", root_source / 'ground-truth-test.json'),
 
         "train_target": (root_target / "train", root_target / 'ground-truth-train.json'),
-        "val_target": (root_target / "val", root_target / 'ground-truth-val.json'),
+        "val_target": (root_target / "test", root_target / 'ground-truth-test.json'),
         "test_target": (root_target / "test", root_target / 'ground-truth-test.json'),
     }
 
