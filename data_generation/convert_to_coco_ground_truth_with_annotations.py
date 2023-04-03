@@ -9,17 +9,17 @@ import random
 
 SCALE = 1.0
 SKIP_INTERVAL = 1
-DATASET_NAME = 'detection_v2_large_videos'
+DATASET_NAME = 'task_switching_dataset'
 # split = 'train'
-file_names = VIDEOS_CLIPS
+# file_names = VIDEOS_CLIPS
 
 
 COCO_DIR = os.path.join(DATASET_DIR, DATASET_NAME)
 os.makedirs(COCO_DIR, exist_ok=True)
 
 img_id_map = {}
-for file in file_names:
-    df = pd.read_csv(os.path.join(DATASET_DIR, 'dataset_v2_raw', 'csvs', f'{file}.csv'))
+for file in [f'task_switching_test']:
+    df = pd.read_csv(os.path.join(DATASET_DIR, 'raw_data_task_switching', f'{file}.csv'))
     num_frames = max(df.image_id.unique()) + 1
     indexes = [i for i in range(num_frames)]
     # random.shuffle(indexes)
@@ -29,7 +29,7 @@ for file in file_names:
         'test': indexes[int(num_frames/4*3):]
     }
 
-for split in ['train', 'val', 'test']:
+for split in ['test']:
     image_count = 0
     detection_count = 0
     json_obj = {
@@ -42,20 +42,24 @@ for split in ['train', 'val', 'test']:
         "images": [],
         "annotations": []
     }
-    for file in file_names:
-        df = pd.read_csv(os.path.join(DATASET_DIR, 'dataset_v2_raw', 'csvs', f'{file}.csv'))
+
+    for file in [f'task_switching_{split}']:
+        df = pd.read_csv(os.path.join(DATASET_DIR, 'raw_data_task_switching', f'{file}.csv'))
         num_frames = max(df.image_id.unique()) + 1
         print('*********************************')
         print('*********************************')
         print('*********************************')
+        print('*********************************')
+        print('*********************************')
+        print('*********************************')
         print(f'{file} - {num_frames}')
-        frames = get_frames(os.path.join(DATASET_DIR, 'dataset_v2_raw', 'videos', f'{file}.mp4'), max=num_frames)
+        frames = get_frames(os.path.join(DATASET_DIR, 'raw_data_task_switching', f'{file}.mp4'), max=num_frames)
 
         image_dir = os.path.join(DATASET_DIR, DATASET_NAME, split)
         os.makedirs(image_dir, exist_ok=True)
-        for image_id in img_id_map[file][split]:
-            if image_id % SKIP_INTERVAL != 0:
-                continue
+        for image_id in range(len(frames)):
+            # if image_id % SKIP_INTERVAL != 0:
+            #     continue
             image_count += 1
             image_name = f'{file}_{image_id:06d}'
             cv2.imwrite(os.path.join(image_dir, f'{image_name}.jpg'), frames[image_id])
