@@ -17,15 +17,16 @@
 python main.py  \
 --dataset_file ant2 \
 --data_path /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_target_dataset \
---data_path_target /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/task_switching_dataset \
---output_dir /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_task_switching_target \
+--data_path_target /dice1-data/home/cabe0006/cvpr_experiments/cvpr_data/detection_v3 \
+--output_dir /dice1-data/home/cabe0006/cvpr_experiments/detr_output/exp4_dsV4 \
 --batch_size 2 \
---resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/detr_task_switching_target/checkpoint.pth \
+--resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/checkpoints_paper/detr-r101-2c7b67e5.pth \
 --backbone resnet101 \
---name detr-task-switching-exp-target \
+--name exp4_dsV4 \
 --disc_loss_coef_local 100 \
 --disc_loss_coef_global 100 \
---checkpoint_freq 1
+--checkpoint_freq 1 \
+--init
 
 
 #--resume /dice1-data/home/cabe0006/cvpr_experiments/detr_output/checkpoints_paper/detr-r101-2c7b67e5.pth \
